@@ -1,0 +1,98 @@
+{
+    "subjects": [
+        {
+            "name": "Chinese Language",
+            "cname": "中國語文"
+        },
+        {
+            "name": "English Language",
+            "cname": "英國語文"
+        },
+        {
+            "name": "Mathematics",
+            "cname": "數學"
+        },
+        {
+            "name": "Citizenship & Social Development",
+            "cname": "公民與社會發展"
+        },
+        {
+            "name": "Science",
+            "cname": "科學"
+        },
+        {
+            "name": "Music",
+            "cname": "音樂"
+        },
+        {
+            "name": "Physical Education",
+            "cname": "體育"
+        },
+        {
+            "name": "Other",
+            "cname": "其他"
+        }
+    ],
+    "forms": [
+        {
+            "name": "Form 1",
+            "cname": "中一"
+        },
+        {
+            "name": "Form 2",
+            "cname": "中二"
+        },
+        {
+            "name": "Form 3",
+            "cname": "中三"
+        },
+        {
+            "name": "Form 4",
+            "cname": "中四"
+        },
+        {
+            "name": "Form 5",
+            "cname": "中五"
+        },
+        {
+            "name": "Form 6",
+            "cname": "中六"
+        },
+        {
+            "name": "Junior",
+            "cname": "初中"
+        },
+        {
+            "name": "Senior",
+            "cname": "高中"
+        },
+        {
+            "name": "All",
+            "cname": "全年級"
+        }
+    ],
+    "classes": [
+        "1A",
+        "1B",
+        "1C",
+        "1D",
+        "2A",
+        "2B",
+        "2C",
+        "3A",
+        "3B",
+        "3C",
+        "3D",
+        "4A",
+        "4B",
+        "4C",
+        "5A",
+        "5B",
+        "5C",
+        "5D",
+        "6A",
+        "6B",
+        "6C",
+        "6D"
+    ]
+}

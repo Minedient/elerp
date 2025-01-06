@@ -1,0 +1,5 @@
+remove some subject in json
+
+2024-12-30
+Removed the need of ROLE in client-server communication
+Rewrite the client-server protocol

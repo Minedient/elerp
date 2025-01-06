@@ -3,6 +3,6 @@
 /error.log
 /temp.txt
 /TODO.txt
-/__pycache__
-/build
-/dist
+/__pycache__/*
+/build/*
+/dist/*

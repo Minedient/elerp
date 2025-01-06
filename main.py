@@ -158,9 +158,7 @@ def getGlobalData(conn):
     subjects = response['subjects'] # Extract the data
     forms = response['forms']
     classes = response['classes']
-    logger.info(f'Received subjects information')
-    logger.info(f'Received forms information')
-    logger.info(f'Received classes information')
+    logger.info('Global data received')
 
 def checkFileNameConvention(name):
     """
@@ -564,19 +562,6 @@ if __name__ == '__main__':
     conn = establishConnection(addr[0])
     testConnection(conn)    # Test the connection, should return OK
     getGlobalData(conn)     # Get the global data
-
-    # Check for updates
-    request = handler.prepMessage(REQUEST.GET, mainCommand='checkVersion').serializeMessage()
-    response = sendRequest(conn, request)
-    if response > CLIENT_VERSION:
-        updateBox = UpdateMessageBox()
-        if updateBox.exec() == QMessageBox.Yes:
-            # Handle the update process here
-            logger.info('User chose to update the program')
-
-        else:
-            logger.info('User chose not to update the program, exiting...')
-            sys.exit(0)
 
     window = MainWindow()
     window.show()

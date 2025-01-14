@@ -1,4 +1,5 @@
 import json
+import sys
 import socket, threading
 from src.protocol import REQUEST, ExecutorScope, ProtocolExecutor, ProtocolHandler, RESPONSE, STATUS
 from src.helper import sendMessage, recvMessage
@@ -8,6 +9,12 @@ import base64
 import traceback
 import os
 import logging, colorlog
+
+from PySide6.QtWidgets import QApplication, QMainWindow, QTableWidgetItem, QTableWidget
+from PySide6.QtCore import QTimer, Qt
+
+### GUI ###
+from ui.ui_management import Ui_MainWindow
 
 LOCAL_IP = socket.gethostbyname(socket.gethostname())
 UDP_PORT = 19864
@@ -261,6 +268,117 @@ def clientHandler(conn, addr):
             break
     conn.close()
 
+class ManagementUI(QMainWindow):
+    def __init__(self):
+        super(ManagementUI, self).__init__()
+        self.ui = Ui_MainWindow()
+        self.ui.setupUi(self)
+        self.timer = QTimer()
+        self.editHistories = []
+
+        def setupTable(table: QTableWidget, headers: list):
+            table.setColumnCount(len(headers))
+            table.setHorizontalHeaderLabels(headers)
+
+        # Set up the tables
+        setupTable(self.ui.worksheetTable, ['ID', 'Name', 'Description', 'Upload Date', 'Last Update Date', 'Subject', 'Form'])
+        setupTable(self.ui.recordTable, ['ID', 'WorksheetID', 'Use Date', 'Class', 'Teacher'])
+        setupTable(self.ui.pathTable, ['ID', 'WorksheetID', 'File Path'])
+            
+        self.refreshTables()
+
+        # Do the hook after the tables are set up
+        self.ui.worksheetTable.itemChanged.connect(lambda item: self.addEditHistory('worksheet', item.row(), item.column(), self.allWorksheets[item.row()][item.column()], item.text()))
+        self.ui.recordTable.itemChanged.connect(lambda item: self.addEditHistory('record', item.row(), item.column(), self.allRecords[item.row()][item.column()], item.text()))
+        self.ui.pathTable.itemChanged.connect(lambda item: self.addEditHistory('path', item.row(), item.column(), self.allWorksheetPaths[item.row()][item.column()], item.text()))
+
+        self.ui.editTrigger.toggled.connect(self.setTableEditModes)
+        self.ui.refreshButton.clicked.connect(self.refreshTables)
+        self.ui.saveButton.clicked.connect(self.saveChanges)
+        
+    class EditHistory:
+        def __init__(self, table, row, column, oldValue, newValue):
+            self.table = table
+            self.row = row
+            self.column = column
+            self.oldValue = oldValue
+            self.newValue = newValue
+
+        def __str__(self):
+            return f'{self.table} - Row: {self.row}, Column: {self.column}, Old Value: {self.oldValue}, New Value: {self.newValue}'
+
+    def addEditHistory(self, table, row, column, oldValue, newValue):
+        if oldValue != newValue:
+            self.editHistories.append(self.EditHistory(table, row, column, oldValue, newValue))
+
+    def saveChanges(self):
+        logger.info('Saving changes in management GUI')
+        for edit in self.editHistories:
+            if edit.table == 'worksheet':
+                db.updateTable(DATABASE_PATH, edit.table, self.columnName(edit.table, edit.column), edit.newValue, f'ID={self.allWorksheets[edit.row][0]}')
+            #if edit.table == 'worksheet':
+                #db.updateWorksheet(DATABASE_PATH, self.allWorksheets[edit.row][0], edit.
+            #elif edit.table == 'record':
+            #    db.updateRecord(DATABASE_PATH, self.allRecords[edit.row][0], edit.column, edit.newValue)
+            #elif edit.table == 'path':
+            #    db.updateWorksheetPath(DATABASE_PATH, self.allWorksheetPaths[edit.row][0], edit.column, edit.newValue)
+        self.setTempMessage('Changes saved')
+        self.refreshTables()
+
+    def columnName(table, index):
+        if table == 'worksheet':
+            return ['ID', 'Name', 'Description', 'Upload Date', 'Last Update Date', 'Subject', 'Form'][index]
+        elif table == 'record':
+            return ['ID', 'WorksheetID', 'Use Date', 'Class', 'Teacher'][index]
+        elif table == 'path':
+            return ['ID', 'WorksheetID', 'File Path'][index]
+
+    def setTableEditModes(self):
+        self.ui.worksheetTable.setEditTriggers(QTableWidget.DoubleClicked | QTableWidget.EditKeyPressed | QTableWidget.AnyKeyPressed if self.ui.editTrigger.isChecked() else QTableWidget.NoEditTriggers)
+        self.ui.recordTable.setEditTriggers(QTableWidget.DoubleClicked | QTableWidget.EditKeyPressed | QTableWidget.AnyKeyPressed if self.ui.editTrigger.isChecked() else QTableWidget.NoEditTriggers)
+        self.ui.pathTable.setEditTriggers(QTableWidget.DoubleClicked | QTableWidget.EditKeyPressed | QTableWidget.AnyKeyPressed if self.ui.editTrigger.isChecked() else QTableWidget.NoEditTriggers)
+        self.setTempMessage('Edit mode enabled' if self.ui.editTrigger.isChecked() else 'Edit mode disabled')
+
+    def setTempMessage(self, message: str):
+        self.timer.stop() if self.timer.isActive() else None
+        self.ui.tempMessageLabel.setText(message)
+        self.timer.setInterval(3000)
+        self.timer.setSingleShot(True)
+        self.timer.timeout.connect(lambda: self.ui.tempMessageLabel.setText(''))
+        self.timer.start()
+
+    def refreshTables(self):
+        logger.info('Refreshing tables in management GUI')
+        self.allWorksheets = db.getWorksheets(DATABASE_PATH)
+        self.allWorksheetPaths = db.getWorksheetPaths(DATABASE_PATH)
+        self.allRecords = db.getRecords(DATABASE_PATH)
+
+        def populateTable(table, data, non_editable_columns):
+            table.setRowCount(len(data))
+            for i, row in enumerate(data):
+                for j, item in enumerate(row):
+                    table.setItem(i, j, QTableWidgetItem(str(item)))
+                    if j in non_editable_columns:
+                        table.item(i, j).setFlags(table.item(i, j).flags() & ~Qt.ItemIsEditable)
+            table.resizeColumnsToContents()
+
+        populateTable(self.ui.worksheetTable, self.allWorksheets, [0, 1, 3, 4])
+        populateTable(self.ui.recordTable, self.allRecords, [0, 1, 3, 4])
+        populateTable(self.ui.pathTable, self.allWorksheetPaths, [0, 1, 3, 4])
+
+def managementGUI():
+    """
+    The graphical management ui for the server.
+
+    Returns:
+        None
+    """
+    app = QApplication(sys.argv) if not QApplication.instance() else QApplication.instance()
+    window = ManagementUI()
+    window.setWindowFlag(Qt.WindowStaysOnTopHint, True)
+    window.show()
+    app.exec()
+
 if __name__ == '__main__':
     broadcastListenerThread = threading.Thread(target=udpService)
     broadcastListenerThread.daemon = True
@@ -287,6 +405,7 @@ if __name__ == '__main__':
         command = input('Enter command: ')
         if command == 'q':
             stop = True
+            print('Stopping server... Please wait')
         elif command == 'list':
             print(addressbook)
         elif command == 'message':
@@ -297,7 +416,9 @@ if __name__ == '__main__':
             print(SERVER_VERSION)
         elif command == 'database':
             print('Working in progress')
+            managementGUI()
         pass
 
     broadcastListenerThread.join()
     dedicatedListenerThread.join()
+    sys.exit(0)

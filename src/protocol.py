@@ -302,21 +302,18 @@ class ProtocolExecutor():
         """
         request_type = self.message.get('type')
         request_command = self.message.get('command')
-        if (request_type, request_command) in self.handlers:
-            scope = self.handlers[(request_type, request_command)][1]
-            action = self.handlers[(request_type, request_command)][0]
-            if scope == ExecutorScope.MESSAGE:
-                return action(self.message['message'], **kwargs)
-            elif scope == ExecutorScope.WHOLE:
-                return action(self.message, **kwargs)
-            elif scope == ExecutorScope.COMMAND:
-                return action(self.message['command'], **kwargs)
-            elif scope == ExecutorScope.RESPONSE:
-                return action(self.message['type'], **kwargs)
-        else:
-            if not self.defaultHandler:
-                raise ValueError(f"No handler registered for {request_type}")
-            return self.defaultHandler(self.message, **kwargs)
+        handler = self.handlers.get((request_type, request_command), (self.defaultHandler, ExecutorScope.WHOLE))
+        action, scope = handler
+        if not action:
+            raise ValueError(f"No handler registered for {request_type}")
+        if scope == ExecutorScope.MESSAGE:
+            return action(self.message['message'], **kwargs)
+        elif scope == ExecutorScope.WHOLE:
+            return action(self.message, **kwargs)
+        elif scope == ExecutorScope.COMMAND:
+            return action(self.message['command'], **kwargs)
+        elif scope == ExecutorScope.RESPONSE:
+            return action(self.message['type'], **kwargs)
 
             
         

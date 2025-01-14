@@ -145,7 +145,7 @@ def insert_record(d_path, sheet_id, use_date, class_name, teacher):
     conn.commit()
     conn.close()
 
-def get_worksheets(d_path):
+def getWorksheets(d_path):
     conn = sqlite3.connect(d_path)
     c = conn.cursor()
     c.execute("SELECT * FROM worksheets")
@@ -153,7 +153,7 @@ def get_worksheets(d_path):
     conn.close()
     return worksheets
 
-def get_records(d_path):
+def getRecords(d_path):
     conn = sqlite3.connect(d_path)
     c = conn.cursor()
     c.execute("SELECT * FROM records")
@@ -161,7 +161,7 @@ def get_records(d_path):
     conn.close()
     return records
 
-def get_worksheet_paths(d_path):
+def getWorksheetPaths(d_path):
     conn = sqlite3.connect(d_path)
     c = conn.cursor()
     c.execute("SELECT * FROM worksheet_paths")
@@ -169,21 +169,13 @@ def get_worksheet_paths(d_path):
     conn.close()
     return worksheet_paths
 
-def get_worksheet_by_id(d_path, sheet_id):
+def updateTable(d_path, table, column, value, condition):
     conn = sqlite3.connect(d_path)
     c = conn.cursor()
-    c.execute("SELECT * FROM worksheets WHERE sheet_id=?", (sheet_id,))
-    worksheet = c.fetchone()
+    c.execute("UPDATE ? SET ?=? WHERE ?", (table, column, value, condition))
+    c.close()
+    conn.commit()
     conn.close()
-    return worksheet
-
-def get_worksheet_path_by_id(d_path, path_id):
-    conn = sqlite3.connect(d_path)
-    c = conn.cursor()
-    c.execute("SELECT * FROM worksheet_paths WHERE path_id=?", (path_id,))
-    worksheet_path = c.fetchone()
-    conn.close()
-    return worksheet_path
 
 def resetDatabaseToDefault(d_path):
     conn = sqlite3.connect(d_path)

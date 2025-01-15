@@ -8,6 +8,7 @@ handler = ProtocolHandler()
 
 # Type definition for the callback function that will be executed when a UDP message is received
 UDPCallback = Callable[[ProtocolData, tuple], None]
+TCPCallback = Callable[[socket.socket, tuple], None]
 
 def searchServer(serverPort, identifier, logger = None):
     """
@@ -78,7 +79,7 @@ def connectToServer(serverIP, serverPort, logger = None):
     return s
 
 
-def createUDPThread(serverPort, action: UDPCallback, globalStopFlag: threading.Event, logger = None):
+def createUDPThread(serverPort: int, action: UDPCallback, globalStopFlag: threading.Event, logger = None):
     """
     Create a thread that listens for UDP broadcast messages.
     The action function will be executed when a message is received.
@@ -112,3 +113,37 @@ def createUDPThread(serverPort, action: UDPCallback, globalStopFlag: threading.E
     if logger:
         logger.info(f"Starting UDP listener thread on port {serverPort}")
     return udpListenerThread
+
+
+def createTCPThread(serverPort: int, action: TCPCallback, globalStopFlag: threading.Event, logger = None):
+    """
+    Create a thread that listens for TCP messages.
+    The action function will be executed when a message is received.
+    The action function should take two arguments: the message and the socket object.
+    Args:
+        serverPort (int): The port number of the server.
+        action (Callable): The function to be executed when a message is received.
+        globalStopFlag (boolean): The flag to stop the thread.
+        logger (logging.Logger): The logger object. (default is None)
+    Returns:
+        tcpThread: The thread object that listens for TCP messages.
+    """
+    SERVER_TCP_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    SERVER_TCP_SOCKET.bind(('', serverPort))
+    SERVER_TCP_SOCKET.listen(5)
+    SERVER_TCP_SOCKET.settimeout(3)
+
+    def actionWrapper(stop: threading.Event):
+        while not stop.is_set():
+            try:
+                conn, addr = SERVER_TCP_SOCKET.accept()
+                action(conn, addr)
+            except socket.timeout:
+                continue
+        SERVER_TCP_SOCKET.close()
+
+    tcpListenerThread = threading.Thread(target = actionWrapper, args=(globalStopFlag,))
+    tcpListenerThread.daemon = True
+    if logger:
+        logger.info(f"Starting TCP listener thread")
+    return tcpListenerThread

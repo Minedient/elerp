@@ -4,7 +4,7 @@ import socket, threading
 from src.protocol import REQUEST, ExecutorScope, ProtocolExecutor, ProtocolData, ProtocolHandler, RESPONSE, STATUS
 from src.helper import sendMessage, recvMessage
 import database as db
-from src.networking import createUDPThread
+from src.networking import createUDPThread, createTCPThread
 
 import base64
 import traceback
@@ -63,52 +63,7 @@ database_metadata = {
     'count': db.getWorksheetsCount(DATABASE_PATH)   # Only update when there are changes on the database
 }
 
-def udpService(stop: threading.Event):
-    """
-    UDP service to listen for boardcast messages from clients and announce the ip to them.
-
-    This function should be run as a deamon thread to keep listening for boardcast messages.
-
-    Returns:
-        None
-    """
-
-    def sendToClient(_):
-        """
-        Send a message to upcoming potential client.
-
-        Returns:
-            None
-        """
-        message = handler.prepMessage(RESPONSE.OK, mainMessage=LOCAL_IP).serializeMessage()
-        logger.info(f'Client found: {addr}')
-        logger.info(f'Sending server ip: {LOCAL_IP} to {addr} and wait for TCP connection')
-        SERVER_SOCKET_UDP.sendto(message.encode(), addr)
-
-    SERVER_SOCKET_UDP.settimeout(3)
-    while not stop.is_set():
-        try:
-            conn, addr = SERVER_SOCKET_UDP.recvfrom(4096)
-            logger.info(f'Connected by {addr} via UDP boardcast')   # Log the connection
-            # Send the server ip to the client
-            data = handler.deserializeMessageAsProtocolData(conn.decode())
-            executor = ProtocolExecutor(data)
-            executor.addMessageHandler(sendToClient, REQUEST.POST, 'elerp_client', ExecutorScope.COMMAND)
-            try:
-                executor.executeHandlers()
-
-            except ValueError as e:
-                e.with_traceback()
-                # The incoming message is send by an invalid client that uses the same protocol, but looking for other server
-                message = handler.prepMessage(RESPONSE.ERROR, mainMessage=STATUS.INVALID_REQUEST).serializeMessage()
-                logger.warning(f'Invalid client found: {addr} with message {data}')
-                SERVER_SOCKET_UDP.sendto(message.encode(), addr)
-        except socket.timeout:
-            continue
-
-    SERVER_SOCKET_UDP.close()   # Stop when the program ends
-
-def newUDPService(data: ProtocolData, addr: tuple):
+def udpService(data: ProtocolData, addr: tuple):
     """
     The new UDP service function focus on handling the message from the client,
     while the loop is abstracted away in networking.py.
@@ -143,33 +98,37 @@ def newUDPService(data: ProtocolData, addr: tuple):
         logger.warning(f'Invalid client found: {addr} with message {data}')
         SERVER_SOCKET_UDP.sendto(message.encode(), addr)
 
-    
-
-def tcpService(stop: threading.Event):
+def tcpService(conn: socket.socket, addr: tuple):
     """
-    TCP service to listen for incoming connections from clients and handle necessary actions for the clients.
-
-    This function should be run as a deamon thread to keep listening for incoming connections.
+    The new TCP service function focus on handling the message from the client,
+    while the loop is abstracted away in networking.py.
     
+    Args:
+        conn (socket): The connection object.
+        addr (tuple): The address of the client.
+
     Returns:
         None
     """
-    SERVER_SOCKET_TCP.listen(5)
-    SERVER_SOCKET_TCP.settimeout(3)
-    while not stop.is_set():
-        try:
-            conn, addr = SERVER_SOCKET_TCP.accept()
-            logger.info(f'Connected by {addr} via TCP')
-            clientService = threading.Thread(target=clientHandler, args=(conn, addr, stop))
-            clientService.daemon = True
-            clientService.start()
-        except socket.timeout:
-            continue
-    SERVER_SOCKET_TCP.close()   # Stop when the program ends
+    logger.info(f'Connected by {addr} via TCP')
+    clientService = threading.Thread(target=clientHandler, args=(conn, addr, stop))
+    clientService.daemon = True
+    clientService.start()
 
-def handelUpload(request):
+def handelUpload(request:dict) -> str:
     """
     Handle the upload request from the client.
+    The function will check if all infoormation is provided and then save the file to the server.
+    Afterward it will return a message indicating the result of the upload action.
+
+    request (dict): The upload request containing the following keys:
+        - fileData (str): Base64 encoded file data.
+        - form (str): The form identifier.
+        - subject (str): The subject identifier.
+        - name (str): The name of the file.
+        - description (str): The description of the file.
+        - creationDate (str): The creation date of the file.
+    str: Serialized message indicating the result of the upload action.
 
     Args:
         request (dict): The upload request.
@@ -420,16 +379,11 @@ def managementGUI():
 
 if __name__ == '__main__':
 
-    testThread = createUDPThread(UDP_PORT, newUDPService, stop)
-    testThread.start()
+    broadcastListenerThread = createUDPThread(UDP_PORT, udpService, stop)
+    broadcastListenerThread.start()
+    logger.info(f'UDP boardcast listener started at {LOCAL_IP}:{UDP_PORT}')
 
-    #broadcastListenerThread = threading.Thread(target=udpService, args=(stop,))
-    #broadcastListenerThread.daemon = True
-    #broadcastListenerThread.start()
-    #logger.info(f'UDP boardcast listener started at {LOCAL_IP}:{UDP_PORT}')
-
-    dedicatedListenerThread = threading.Thread(target=tcpService, args=(stop,))
-    dedicatedListenerThread.daemon = True
+    dedicatedListenerThread = createTCPThread(TCP_PORT, tcpService, stop)
     dedicatedListenerThread.start()
     logger.info(f'TCP listener started at {LOCAL_IP}:{TCP_PORT}')
 
@@ -462,10 +416,8 @@ if __name__ == '__main__':
             managementGUI()
         pass
 
-    print('Stopping test thread...')
-    testThread.join()
-    #print('Stopping broadcast listener thread...')
-    #broadcastListenerThread.join()
+    print('Stopping broadcast listener thread...')
+    broadcastListenerThread.join()
     print('Stopping dedicated listener thread...')
     dedicatedListenerThread.join()
     sys.exit(0)

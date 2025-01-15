@@ -47,7 +47,8 @@ def protocolHook(data):
 
 class ProtocolData():
     """
-    The protocol data object to store the data of the protocol.
+    The data structure for the elerp network communication.
+    It wraps the dictionary data structure and provides methods to access the data easily.
     """
     def __init__(self):
         self.data = {'type': None, 'command': None, 'message': {}}
@@ -148,12 +149,13 @@ class ProtocolData():
 class ProtocolHandler():
     """
     The protocol handler for elerp network communication.
+    
     """
     def __init__(self):
         self.data = {}
         pass
     
-    def prepMessage(self, responseObj: Union[REQUEST, RESPONSE], mainCommand:str = None, mainMessage = {}):
+    def prepMessage(self, responseObj: Union[REQUEST, RESPONSE], mainCommand:str = None, mainMessage = {}) -> 'ProtocolHandler':
         """
         Prepare the message to be sent over the elerp network.
 
@@ -169,7 +171,7 @@ class ProtocolHandler():
         self.data['message'] = mainMessage
         return self
     
-    def addAttribute(self, key, value):
+    def addAttribute(self, key, value) -> 'ProtocolHandler':
         """
         Add attributes to the message's body, this is used to add additional information in the message.
 
@@ -183,7 +185,7 @@ class ProtocolHandler():
         self.data['message'][key] = value
         return self
     
-    def serializeMessage(self):
+    def serializeMessage(self) -> str:
         """
         Serialize the message to JSON format, and reset the message
 
@@ -194,9 +196,11 @@ class ProtocolHandler():
         self.data = {}
         return json.dumps(final, cls=ProtocolEncoder, ensure_ascii=False)
     
-    def deserializeMessage(self, message):
+    
+    def __deserializeMessage(self, message) -> dict:
         """
         Deserialize the message from JSON format.
+        This method is used internally to deserialize the message.
 
         Args:
             message (str): The message to be deserialized.
@@ -219,7 +223,7 @@ class ProtocolHandler():
         Returns:
             data (ProtocolData): The deserialized message as a ProtocolData object.
         """
-        raw = self.deserializeMessage(message)
+        raw = self.__deserializeMessage(message)
         data = ProtocolData()
         data.setType(raw['type'])
         data.setCommand(raw['command'])
@@ -258,10 +262,10 @@ class ExecutorScope(Enum):
     
 class ProtocolExecutor():
 
-    def __init__(self, message: Union[ProtocolData, dict] =None ):
+    def __init__(self, message:ProtocolData=None ):
         self.message = message
 
-    def setMessage(self, message):
+    def setMessage(self, message:ProtocolData):
         """
         Set the message to be executed.
 
@@ -277,10 +281,7 @@ class ProtocolExecutor():
         Returns:
             tuple: The message type and command tuple.
         """
-        if type(self.message) is ProtocolData:
-            return (self.message.getType(), self.message.getCommand())
-        else:
-            return (self.message['type'], self.message['command'])
+        return (self.message.getType(), self.message.getCommand())
 
     def checkHandlers(self):
         """

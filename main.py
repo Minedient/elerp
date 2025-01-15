@@ -6,7 +6,6 @@ from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QDragEnterEvent, QDropEvent, QIcon
 import os
 import sys
-import socket
 import logging, colorlog
 from ui.uploadWizard_ui import Ui_Dialog as UploadWizardDialog
 from ui.registerWizard_ui import Ui_Dialog as RegisterWizardDialog
@@ -40,7 +39,7 @@ subjects = None
 forms = None
 classes = None
 
-CLIENT_VERSION = '1.0.2'
+CLIENT_VERSION = '1.0.4'
 SERVER_UDP_PORT = 19864
 SERVER_TCP_PORT = 19865
 
@@ -92,6 +91,47 @@ def testConnection(conn):
         logger.info('Connection test successful')
     else:
         logger.error('Connection test failed')
+
+def versionCompare(client: str, server: str) -> int:
+    """
+    Compare the client version with the server version.
+
+    Args:
+        client (str): The client version.
+        server (str): The server version.
+
+    Returns:
+        int: 0 if the versions are the same, 1 if the server version is newer than the client, but it is compatible, 2 if the server version is newer than the client, but it is not compatible.
+    """
+    clientNum = [int(i) for i in client.split('.')]
+    serverNum = [int(i) for i in server.split('.')]
+    # The first number is the major version, the second number is the minor version, the third number is the patch version
+    # Due to the nature of the versioning system, the server version should always be greater than the client version,
+    for c, s in zip(clientNum, serverNum):
+        if s > c:
+            return 1 if serverNum[0] == clientNum[0] else 2
+        elif s < c:
+            return 0
+    return 0
+
+def checkUpdate(conn):
+    """
+    Compare the client version with the server version.
+    If the server version is newer, return True, otherwise False.
+
+    Args:
+        conn: The connection object.
+    """
+    request = handler.prepMessage(REQUEST.GET, mainCommand='checkVersion').serializeMessage()
+    respond = sendRequest(conn, request, scope=ExecutorScope.MESSAGE)
+    result = versionCompare(CLIENT_VERSION, respond)
+    if result == 1:
+        QMessageBox.information(None, 'Update', 'A new update is available, please update the program to the latest version.')
+    elif result == 2:
+        QMessageBox.critical(None, 'Error', 'The server version is not compatible with the client version, please update the program to the latest version.')
+    else:
+        logger.info('Client version is up to date')
+
 
 def getGlobalData(conn):
     global subjects, forms, classes
@@ -503,6 +543,7 @@ if __name__ == '__main__':
         sys.exit(1)
     conn = connectToServer(addr[0], SERVER_TCP_PORT, logger)
     testConnection(conn)    # Test the connection, should return OK
+    checkUpdate(conn)       # Check for update
     getGlobalData(conn)     # Get the global data
 
     window = MainWindow()

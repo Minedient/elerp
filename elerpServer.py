@@ -1,9 +1,10 @@
 import json
 import sys
 import socket, threading
-from src.protocol import REQUEST, ExecutorScope, ProtocolExecutor, ProtocolHandler, RESPONSE, STATUS
+from src.protocol import REQUEST, ExecutorScope, ProtocolExecutor, ProtocolData, ProtocolHandler, RESPONSE, STATUS
 from src.helper import sendMessage, recvMessage
 import database as db
+from src.networking import createUDPThread
 
 import base64
 import traceback
@@ -54,7 +55,7 @@ handler = ProtocolHandler()
 
 addressbook = {}
 
-stop = False
+stop = threading.Event()
 
 progRes = None
 
@@ -62,7 +63,7 @@ database_metadata = {
     'count': db.getWorksheetsCount(DATABASE_PATH)   # Only update when there are changes on the database
 }
 
-def udpService():
+def udpService(stop: threading.Event):
     """
     UDP service to listen for boardcast messages from clients and announce the ip to them.
 
@@ -85,28 +86,66 @@ def udpService():
         SERVER_SOCKET_UDP.sendto(message.encode(), addr)
 
     SERVER_SOCKET_UDP.settimeout(3)
-    while not stop:
+    while not stop.is_set():
         try:
             conn, addr = SERVER_SOCKET_UDP.recvfrom(4096)
             logger.info(f'Connected by {addr} via UDP boardcast')   # Log the connection
             # Send the server ip to the client
-            data = handler.deserializeMessage(conn.decode())
+            data = handler.deserializeMessageAsProtocolData(conn.decode())
             executor = ProtocolExecutor(data)
             executor.addMessageHandler(sendToClient, REQUEST.POST, 'elerp_client', ExecutorScope.COMMAND)
             try:
                 executor.executeHandlers()
+
             except ValueError as e:
                 e.with_traceback()
+                # The incoming message is send by an invalid client that uses the same protocol, but looking for other server
                 message = handler.prepMessage(RESPONSE.ERROR, mainMessage=STATUS.INVALID_REQUEST).serializeMessage()
                 logger.warning(f'Invalid client found: {addr} with message {data}')
                 SERVER_SOCKET_UDP.sendto(message.encode(), addr)
-
         except socket.timeout:
             continue
 
     SERVER_SOCKET_UDP.close()   # Stop when the program ends
 
-def tcpService():
+def newUDPService(data: ProtocolData, addr: tuple):
+    """
+    The new UDP service function focus on handling the message from the client,
+    while the loop is abstracted away in networking.py.
+
+    Args:
+        data (ProtocolData): The data received from the client.
+        socket (socket): The socket object to send the message back to the client.
+        The args have to match the signature of the function in networking.py
+    Returns:
+        None
+    """
+    def sendToClient(_):
+        """
+        Send a message to upcoming potential client.
+
+        Returns:
+            None
+        """
+        message = handler.prepMessage(RESPONSE.OK, mainMessage=LOCAL_IP).serializeMessage()
+        logger.info(f'Client found: {addr}')
+        logger.info(f'Sending server ip: {LOCAL_IP} to {addr} and wait for TCP connection')
+        SERVER_SOCKET_UDP.sendto(message.encode(), addr)
+
+    executor = ProtocolExecutor(data)
+    executor.addMessageHandler(sendToClient, REQUEST.POST, 'elerp_client', ExecutorScope.COMMAND)
+    try:
+        executor.executeHandlers()
+    except ValueError as e:
+        e.with_traceback()
+        # The incoming message is send by an invalid client that uses the same protocol, but looking for other server
+        message = handler.prepMessage(RESPONSE.ERROR, mainMessage=STATUS.INVALID_REQUEST).serializeMessage()
+        logger.warning(f'Invalid client found: {addr} with message {data}')
+        SERVER_SOCKET_UDP.sendto(message.encode(), addr)
+
+    
+
+def tcpService(stop: threading.Event):
     """
     TCP service to listen for incoming connections from clients and handle necessary actions for the clients.
 
@@ -117,11 +156,11 @@ def tcpService():
     """
     SERVER_SOCKET_TCP.listen(5)
     SERVER_SOCKET_TCP.settimeout(3)
-    while not stop:
+    while not stop.is_set():
         try:
             conn, addr = SERVER_SOCKET_TCP.accept()
             logger.info(f'Connected by {addr} via TCP')
-            clientService = threading.Thread(target=clientHandler, args=(conn, addr))
+            clientService = threading.Thread(target=clientHandler, args=(conn, addr, stop))
             clientService.daemon = True
             clientService.start()
         except socket.timeout:
@@ -225,7 +264,7 @@ def getTotalWorksheets(_, conn, ip):
     reply = handler.prepMessage(RESPONSE.OK, mainMessage=database_metadata['count']).serializeMessage()
     sendMessage(conn, reply.encode())
 
-def clientHandler(conn, addr):
+def clientHandler(conn, addr, stop: threading.Event):
     """
     Handle the client connection. The function will keep listening for messages from the client.
     and send replies back to the client. The function will stop when the client disconnects.
@@ -249,7 +288,7 @@ def clientHandler(conn, addr):
     executor.addMessageHandler(lambda message: postUploadWorksheet(message, conn, ip), requestType=REQUEST.POST, requestCommand='uploadWorksheet', scope=ExecutorScope.MESSAGE)
     executor.addMessageHandler(lambda message: postRegisterUsage(message, conn, ip), requestType=REQUEST.POST, requestCommand='registerUsage', scope=ExecutorScope.MESSAGE)
     executor.addMessageHandler(lambda _: getTotalWorksheets(_, conn, ip), requestCommand='totalWorksheets')
-    while not stop:
+    while not stop.is_set():
         try:
             data = recvMessage(conn) # Receive the message from the client
             if not data:
@@ -258,7 +297,7 @@ def clientHandler(conn, addr):
             ip = addr[0]
             addressbook[ip] = socket.gethostbyaddr(ip)[0] if socket.gethostbyaddr(ip)[0] not in addressbook else addressbook[ip] # Add the client to the addressbook
 
-            decoded = handler.deserializeMessage(data.decode())
+            decoded = handler.deserializeMessageAsProtocolData(data.decode())
             executor.setMessage(decoded)
             executor.executeHandlers()
 
@@ -380,12 +419,16 @@ def managementGUI():
     app.exec()
 
 if __name__ == '__main__':
-    broadcastListenerThread = threading.Thread(target=udpService)
-    broadcastListenerThread.daemon = True
-    broadcastListenerThread.start()
-    logger.info(f'UDP boardcast listener started at {LOCAL_IP}:{UDP_PORT}')
 
-    dedicatedListenerThread = threading.Thread(target=tcpService)
+    testThread = createUDPThread(UDP_PORT, newUDPService, stop)
+    testThread.start()
+
+    #broadcastListenerThread = threading.Thread(target=udpService, args=(stop,))
+    #broadcastListenerThread.daemon = True
+    #broadcastListenerThread.start()
+    #logger.info(f'UDP boardcast listener started at {LOCAL_IP}:{UDP_PORT}')
+
+    dedicatedListenerThread = threading.Thread(target=tcpService, args=(stop,))
     dedicatedListenerThread.daemon = True
     dedicatedListenerThread.start()
     logger.info(f'TCP listener started at {LOCAL_IP}:{TCP_PORT}')
@@ -394,7 +437,7 @@ if __name__ == '__main__':
     progRes = json.loads(open(RESOURCES_PATH + 'data.json', 'r',encoding='utf-8').read())
     logger.info(f'Resource {RESOURCES_PATH + 'data.json'} loaded')
 
-    while not stop:
+    while not stop.is_set():
         print('\n\nELERP Server management console')
         print('q --- Quit')
         print('list --- List all clients')
@@ -404,7 +447,7 @@ if __name__ == '__main__':
         print('database --- Database management tools')
         command = input('Enter command: ')
         if command == 'q':
-            stop = True
+            stop.set()
             print('Stopping server... Please wait')
         elif command == 'list':
             print(addressbook)
@@ -419,6 +462,10 @@ if __name__ == '__main__':
             managementGUI()
         pass
 
-    broadcastListenerThread.join()
+    print('Stopping test thread...')
+    testThread.join()
+    #print('Stopping broadcast listener thread...')
+    #broadcastListenerThread.join()
+    print('Stopping dedicated listener thread...')
     dedicatedListenerThread.join()
     sys.exit(0)

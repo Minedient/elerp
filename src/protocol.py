@@ -209,7 +209,16 @@ class ProtocolHandler():
         message = json.loads(message, object_hook=protocolHook)
         return self.recursiveJSONParser(message)                                   # Then perform the recursive parsing and return the parsed data
     
-    def deserializeMessageAsProtocolData(self, message):
+    def deserializeMessageAsProtocolData(self, message: str) -> ProtocolData:
+        """
+        Deserialize the message from JSON format and return it as a ProtocolData object.
+
+        Args:
+            message (str): The message to be deserialized.
+        
+        Returns:
+            data (ProtocolData): The deserialized message as a ProtocolData object.
+        """
         raw = self.deserializeMessage(message)
         data = ProtocolData()
         data.setType(raw['type'])
@@ -249,7 +258,7 @@ class ExecutorScope(Enum):
     
 class ProtocolExecutor():
 
-    def __init__(self, message=None):
+    def __init__(self, message: Union[ProtocolData, dict] =None ):
         self.message = message
 
     def setMessage(self, message):
@@ -260,6 +269,18 @@ class ProtocolExecutor():
             message (dict): The message
         """
         self.message = message
+
+    def getMessageTuple(self):
+        """
+        Get the message type and command tuple.
+
+        Returns:
+            tuple: The message type and command tuple.
+        """
+        if type(self.message) is ProtocolData:
+            return (self.message.getType(), self.message.getCommand())
+        else:
+            return (self.message['type'], self.message['command'])
 
     def checkHandlers(self):
         """
@@ -300,20 +321,22 @@ class ProtocolExecutor():
         """
         Execute the registered action based on the message's request or response type.
         """
-        request_type = self.message.get('type')
-        request_command = self.message.get('command')
-        handler = self.handlers.get((request_type, request_command), (self.defaultHandler, ExecutorScope.WHOLE))
-        action, scope = handler
-        if not action:
-            raise ValueError(f"No handler registered for {request_type}")
-        if scope == ExecutorScope.MESSAGE:
-            return action(self.message['message'], **kwargs)
-        elif scope == ExecutorScope.WHOLE:
-            return action(self.message, **kwargs)
-        elif scope == ExecutorScope.COMMAND:
-            return action(self.message['command'], **kwargs)
-        elif scope == ExecutorScope.RESPONSE:
-            return action(self.message['type'], **kwargs)
+        request_tuple = self.getMessageTuple()
+        if request_tuple in self.handlers:
+            scope = self.handlers[request_tuple][1]
+            action = self.handlers[request_tuple][0]
+            if scope == ExecutorScope.MESSAGE:
+                return action(self.message.getMessage(), **kwargs)
+            elif scope == ExecutorScope.WHOLE:
+                return action(self.message, **kwargs)
+            elif scope == ExecutorScope.COMMAND:
+                return action(self.message.getCommand(), **kwargs)
+            elif scope == ExecutorScope.RESPONSE:
+                return action(self.message.getType(), **kwargs)
+        else:
+            if not self.defaultHandler:
+                raise ValueError(f"No handler registered for {request_tuple}")
+            return self.defaultHandler(self.message, **kwargs)
 
             
         

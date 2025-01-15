@@ -14,6 +14,7 @@ from src.helper import recvMessage, sendMessage
 from src.protocol import STATUS, ExecutorScope, ProtocolHandler, REQUEST, RESPONSE
 import time
 import configparser
+from src.networking import searchServer, connectToServer
 
 TIER = ['F1','F2','F3','F4','F5','F6','J','S','A']
 
@@ -40,6 +41,8 @@ forms = None
 classes = None
 
 CLIENT_VERSION = '1.0.2'
+SERVER_UDP_PORT = 19864
+SERVER_TCP_PORT = 19865
 
 def exceptionHook(exctype, value, traceback):
     logger.error(f'Uncaught exception: {exctype}, {value}, {traceback}')
@@ -51,67 +54,6 @@ def exceptionHook(exctype, value, traceback):
 
 # Hook for excpetion
 sys.excepthook = exceptionHook
-
-# Using local network boardcast to find the server
-def searchServer():
-    """
-    Send a boardcast message to all devices in local network and find the server.
-
-    Returns:
-        server_ip: The ip address of the server.
-    """
-    boardcast_ip = '255.255.255.255'
-    port = 19864
-
-    # Create a UDP socket
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-
-    # New message
-    message = handler.prepMessage(REQUEST.POST, mainCommand='elerp_client').serializeMessage()
-
-    logger.debug(f'Sending boardcast message: {message}')
-    s.sendto(message.encode(), (boardcast_ip, port))
-
-    # Receive the server ip
-    s.settimeout(2)
-    try:
-        data, addr = s.recvfrom(4096)
-        response = handler.deserializeMessageAsProtocolData(data.decode())
-        if response.getType() != RESPONSE.OK:
-            raise ValueError(f'Invalid response: {response.getType()}')
-
-        logger.debug(f'Received server ip: {addr}')
-        logger.info(f'Server found!')
-        return addr
-    except socket.timeout:
-        logger.debug('No server found')
-        return None, None
-    except socket.error as e:
-        if e.errno == 10054:
-            logger.info('Connection reset by peer')
-        else:
-            raise
-    except ValueError as e:
-        logger.error(f'Invalid message: {e}')
-        return None, None
-    s.close()
-
-def establishConnection(server_ip):
-    """
-    Establish a TCP connection with the server.
-
-    Args:
-        server_ip (str): The ip address of the server.
-
-    Returns:
-        conn: The connection object.
-    """
-    port = 19865
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.settimeout(3)
-    s.connect((server_ip, port))
-    return s
 
 def sendRequest(conn, request, scope=ExecutorScope.MESSAGE):
     """
@@ -555,11 +497,11 @@ if __name__ == '__main__':
     downloadFolderPath = os.path.dirname(os.path.abspath(__file__)) if config.getint('SETTING', 'Store Location') == 1 else os.path.join(os.path.expanduser('~'), 'Downloads')
 
     # Attempt to find the server and collect necessary information
-    addr = searchServer()
+    addr = searchServer(SERVER_UDP_PORT, 'elerp_client', logger)
     if not addr[0] and addr[1]:
         QMessageBox.critical(None, 'Error', 'No server found')
         sys.exit(1)
-    conn = establishConnection(addr[0])
+    conn = connectToServer(addr[0], SERVER_TCP_PORT, logger)
     testConnection(conn)    # Test the connection, should return OK
     getGlobalData(conn)     # Get the global data
 

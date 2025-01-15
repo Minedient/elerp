@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'mainUI.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.8.0
+## Created by: Qt User Interface Compiler version 6.8.1
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -31,6 +31,8 @@ class Ui_mainWindow(object):
         mainWindow.resize(1278, 719)
         self.actionAbout_The_App = QAction(mainWindow)
         self.actionAbout_The_App.setObjectName(u"actionAbout_The_App")
+        self.actionFile_Naming_Convention = QAction(mainWindow)
+        self.actionFile_Naming_Convention.setObjectName(u"actionFile_Naming_Convention")
         self.centralwidget = QWidget(mainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
         sizePolicy = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
@@ -207,6 +209,7 @@ class Ui_mainWindow(object):
 
         self.menubar.addAction(self.menuHelp.menuAction())
         self.menuHelp.addAction(self.actionAbout_The_App)
+        self.menuHelp.addAction(self.actionFile_Naming_Convention)
 
         self.retranslateUi(mainWindow)
 
@@ -216,9 +219,10 @@ class Ui_mainWindow(object):
     def retranslateUi(self, mainWindow):
         mainWindow.setWindowTitle(QCoreApplication.translate("mainWindow", u"ELERP", None))
         self.actionAbout_The_App.setText(QCoreApplication.translate("mainWindow", u"About the App", None))
+        self.actionFile_Naming_Convention.setText(QCoreApplication.translate("mainWindow", u"File Naming Convention", None))
         self.label.setText(QCoreApplication.translate("mainWindow", u"Welcome to Extra Learning Exercise Report Platform (ELERP). Here you can upload and share exercise worksheet for other teacher to use during substition class.", None))
         self.actionBox.setTitle(QCoreApplication.translate("mainWindow", u"Please choose from one of the following action", None))
-        self.worksheetCountLabel.setText(QCoreApplication.translate("mainWindow", u"Worksheet Count: ", None))
+        self.worksheetCountLabel.setText(QCoreApplication.translate("mainWindow", u"Total worksheets: 0", None))
         self.uploadWidgetButton.setText(QCoreApplication.translate("mainWindow", u"Open", None))
         self.nextToProgramButton.setText(QCoreApplication.translate("mainWindow", u"Next to program", None))
         self.registerWidgetButton.setText(QCoreApplication.translate("mainWindow", u"Register", None))
@@ -226,7 +230,7 @@ class Ui_mainWindow(object):
         self.label_4.setText(QCoreApplication.translate("mainWindow", u"File store location:", None))
         self.label_3.setText(QCoreApplication.translate("mainWindow", u"Register to use a worksheet", None))
         self.downloadsFolderButton.setText(QCoreApplication.translate("mainWindow", u"Downloads Folder", None))
-        self.groupBox.setTitle(QCoreApplication.translate("mainWindow", u"Recent Registered Usage", None))
+        self.groupBox.setTitle(QCoreApplication.translate("mainWindow", u"Recent Registered Worksheet Usage", None))
         ___qtablewidgetitem = self.recentUsageTable.horizontalHeaderItem(0)
         ___qtablewidgetitem.setText(QCoreApplication.translate("mainWindow", u"Teacher", None));
         ___qtablewidgetitem1 = self.recentUsageTable.horizontalHeaderItem(1)

@@ -318,6 +318,7 @@
      <string>Help</string>
     </property>
     <addaction name="actionAbout_The_App"/>
+    <addaction name="actionFile_Naming_Convention"/>
    </widget>
    <addaction name="menuHelp"/>
   </widget>
@@ -325,6 +326,11 @@
   <action name="actionAbout_The_App">
    <property name="text">
     <string>About the App</string>
+   </property>
+  </action>
+  <action name="actionFile_Naming_Convention">
+   <property name="text">
+    <string>File Naming Convention</string>
    </property>
   </action>
  </widget>

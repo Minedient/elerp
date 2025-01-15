@@ -97,6 +97,8 @@ def createUDPThread(serverPort: int, action: UDPCallback, globalStopFlag: thread
     SERVER_UDP_SOCKET.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     SERVER_UDP_SOCKET.bind(('', serverPort))    # will it work?
     SERVER_UDP_SOCKET.settimeout(3)
+
+    # Wrapper function #
     def actionWrapper(stop: threading.Event):
         while not stop.is_set():
             try:

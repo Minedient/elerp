@@ -14,7 +14,6 @@ def findFormByClass(class_name):
 def findStageByClass(class_name):
     splited = list(class_name)
     return 'Junior' if splited[0] == '1' or splited[0] == '2' or splited[0] == '3' else 'Senior'
-    
 
 def create_database(d_path):
     conn = sqlite3.connect(d_path)

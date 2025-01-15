@@ -246,7 +246,7 @@ class UploadWizard(QDialog):
         for i in range(num):
             name = os.path.basename(self.ui.fileListWidget.item(i).data(Qt.UserRole))
             if not checkFileNameConvention(name):
-                QMessageBox.critical(None, 'Error', f'Invalid file name convention: {name}')
+                QMessageBox.critical(None, 'Error', f'Invalid file name convention: {name}\nPlease follow the correct file name convention\nYou can find the file naming convention in the help menu')
                 return
         logger.info('Upload wizard input accepted')
 
@@ -443,6 +443,7 @@ class MainWindow(QMainWindow):
         registerWizard.rejected.connect(lambda: self.updateRecentUsageTable(conn))  
 
         self.ui.actionAbout_The_App.triggered.connect(lambda: QMessageBox.about(None, 'About', 'This is a simple application that allows teachers to upload worksheets and register usage of worksheets.'))
+        self.ui.actionFile_Naming_Convention.triggered.connect(lambda: QMessageBox.about(None, 'File Naming Convention', 'The file naming convention of the system is as follows:\nTier_Subject_Serial_Title.extension\n\nTier: F1, F2, F3, F4, F5, F6, J, S, A\nSubject: The subject name\nSerial: A number that is unique for the given tier and subject\nTitle: The title of the file\n\nAn example of a correct file name is: F1_Math_1_Addition.pdf'))
 
         # Setup a timer to update the total worksheet count every minute
         self.timer = QTimer(self)

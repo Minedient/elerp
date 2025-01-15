@@ -8,3 +8,5 @@
 /dist/*
 /src/__pycache__/*
 /ui/__pycache__/*
+ELERP_GUI.spec
+ELERP_SERVER.spec

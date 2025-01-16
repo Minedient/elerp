@@ -1,3 +1,4 @@
+from datetime import datetime
 import json
 import sys
 import socket, threading
@@ -374,6 +375,31 @@ class ManagementUI(QMainWindow):
         populateTable(self.ui.recordTable, self.allRecords, [0, 1, 2, 3, 4])
         populateTable(self.ui.pathTable, self.allWorksheetPaths, [0, 1, 2])
 
+def exportToCSV():
+    """
+    Export the database to a csv file.
+    The csv file is stored in the same directory with the exe with name by the current date and time.
+
+    Returns:
+        None
+    """
+    currentTime = datetime.now().strftime('%Y-%m-%d %H-%M-%S')
+    fileNames = [f'{currentTime}_worksheets.csv', f'{currentTime}_records.csv', f'{currentTime}_paths.csv']
+    with open(fileNames[0], 'w') as file:
+        file.write('Worksheet ID, Name, Description, Upload Date, Last Update Date, Subject, Form\n')
+        for worksheet in db.getWorksheets(DATABASE_PATH):
+            file.write(','.join(map(str, worksheet)) + '\n')
+
+    with open(fileNames[1], 'w') as file:
+        file.write('Record ID, Worksheet ID, Use Date, Class, Teacher\n')
+        for record in db.getRecords(DATABASE_PATH):
+            file.write(','.join(map(str, record)) + '\n')
+
+    with open(fileNames[2], 'w') as file:
+        file.write('Path ID, Worksheet ID, File Path\n')
+        for path in db.getWorksheetPaths(DATABASE_PATH):
+            file.write(','.join(map(str, path)) + '\n')
+
 def managementGUI():
     """
     The graphical management ui for the server.
@@ -409,6 +435,7 @@ if __name__ == '__main__':
         print('reset --- Reset database')
         print('version --- Show server version')
         print('database --- Database management tools')
+        print('csv --- Export database to csv')
         command = input('Enter command: ')
         if command == 'q':
             stop.set()

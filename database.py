@@ -177,14 +177,6 @@ def updateWorksheet(d_path, column, value, condition):
     conn.commit()
     conn.close()
 
-def updateTable(d_path, table, column, value, condition):
-    conn = sqlite3.connect(d_path)
-    c = conn.cursor()
-    c.execute("UPDATE ? SET ?=? WHERE ?", (table, column, value, condition))
-    c.close()
-    conn.commit()
-    conn.close()
-
 def resetDatabaseToDefault(d_path):
     conn = sqlite3.connect(d_path)
     c = conn.cursor()

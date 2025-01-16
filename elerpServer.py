@@ -265,14 +265,26 @@ def clientHandler(conn, addr, stop: threading.Event):
             conn.close()
             break
     conn.close()
+        
+class EditHistory:
+    def __init__(self, table, row, column, oldValue, newValue):
+        self.table = table
+        self.row = row
+        self.column = column
+        self.oldValue = oldValue
+        self.newValue = newValue
+
+    def __str__(self):
+        return f'{self.table} - Row: {self.row}, Column: {self.column}, Old Value: {self.oldValue}, New Value: {self.newValue}'
 
 class ManagementUI(QMainWindow):
+        
     def __init__(self):
         super(ManagementUI, self).__init__()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
         self.timer = QTimer()
-        self.editHistories = []
+        self.editHistories: list[EditHistory] = []
 
         def setupTable(table: QTableWidget, headers: list):
             table.setColumnCount(len(headers))
@@ -287,26 +299,10 @@ class ManagementUI(QMainWindow):
 
         # Do the hook after the tables are set up
         self.ui.worksheetTable.itemChanged.connect(lambda item: self.addEditHistory('worksheet', item.row(), item.column(), self.allWorksheets[item.row()][item.column()], item.text()))
-        self.ui.recordTable.itemChanged.connect(lambda item: self.addEditHistory('record', item.row(), item.column(), self.allRecords[item.row()][item.column()], item.text()))
-        self.ui.pathTable.itemChanged.connect(lambda item: self.addEditHistory('path', item.row(), item.column(), self.allWorksheetPaths[item.row()][item.column()], item.text()))
 
         self.ui.editTrigger.toggled.connect(self.setTableEditModes)
         self.ui.refreshButton.clicked.connect(self.refreshTables)
         self.ui.saveButton.clicked.connect(self.saveChanges)
-
-
-        #self.ui.centralwidget.keyPressEvent = lambda event: self.saveChanges() if event.key() == Qt.Key_Enter else None
-        
-    class EditHistory:
-        def __init__(self, table, row, column, oldValue, newValue):
-            self.table = table
-            self.row = row
-            self.column = column
-            self.oldValue = oldValue
-            self.newValue = newValue
-
-        def __str__(self):
-            return f'{self.table} - Row: {self.row}, Column: {self.column}, Old Value: {self.oldValue}, New Value: {self.newValue}'
         
     def closeEvent(self, event):
         if len(self.editHistories) > 0:
@@ -319,58 +315,36 @@ class ManagementUI(QMainWindow):
 
     def addEditHistory(self, table, row, column, oldValue, newValue):
         if oldValue != newValue:
-            self.editHistories.append(self.EditHistory(table, row, column, oldValue, newValue))
+            self.editHistories.append(EditHistory(table, row, column, oldValue, newValue))
 
-    def columnName(self, table, index):
+    def columnName(self, table, column):
         if table == 'worksheet':
-            return ['sheed_id', 'name', 'description', 'upload_date', 'last_update', 'subject', 'form'][index]
-        elif table == 'record':
-            return ['ID', 'WorksheetID', 'Use Date', 'Class', 'Teacher'][index]
-        elif table == 'path':
-            return ['ID', 'WorksheetID', 'File Path'][index]
+            return ['sheet_id', 'name', 'description', 'upload_date', 'last_update', 'subject', 'form'][column]
 
     def saveChanges(self):
+        # if nothing is changed, do nothing
         if len(self.editHistories) == 0:
             self.setTempMessage('No changes to save')
             return
 
+        # if the user doesn't want to save the changes, do nothing
         isSave = QMessageBox.question(self, 'Save changes', 'Are you sure you want to save the changes?', QMessageBox.Yes | QMessageBox.No)
         if isSave == QMessageBox.No:
             return
 
-
         logger.info('Saving changes in management GUI')
         for edit in self.editHistories:
             if edit.table == 'worksheet':
-                print(f"UPDATE worksheets SET {self.columnName(edit.table, edit.column)}={edit.newValue} WHERE sheet_id={self.allWorksheets[edit.row][0]}")
                 db.updateWorksheet(DATABASE_PATH, self.columnName(edit.table, edit.column), edit.newValue, self.allWorksheets[edit.row][0])
         self.setTempMessage('Changes saved')
-        # Clear the edit histories
-        self.editHistories.clear()
+        self.editHistories.clear()  # Clear the edit histories
 
-        self.setTableSignalsBlockingMode(True)
+        self.ui.worksheetTable.blockSignals(True)
         self.refreshTables()    # Refresh the tables to reflect the changes, signal blocking is enabled to prevent the edit signals from being triggered
-        self.setTableSignalsBlockingMode(False)
-
-    def setTableSignalsBlockingMode(self, mode: bool):
-        """
-        Set the blocking mode of the signals of the tables.
-        True to block, False to unblock.
-        
-        Args:
-            mode (bool): The blocking mode.
-            
-        Returns:    
-            None
-        """
-        self.ui.worksheetTable.blockSignals(mode)
-        self.ui.recordTable.blockSignals(mode)
-        self.ui.pathTable.blockSignals(mode)
+        self.ui.worksheetTable.blockSignals(False)
 
     def setTableEditModes(self):
         self.ui.worksheetTable.setEditTriggers(QTableWidget.DoubleClicked | QTableWidget.EditKeyPressed | QTableWidget.AnyKeyPressed if self.ui.editTrigger.isChecked() else QTableWidget.NoEditTriggers)
-        self.ui.recordTable.setEditTriggers(QTableWidget.DoubleClicked | QTableWidget.EditKeyPressed | QTableWidget.AnyKeyPressed if self.ui.editTrigger.isChecked() else QTableWidget.NoEditTriggers)
-        self.ui.pathTable.setEditTriggers(QTableWidget.DoubleClicked | QTableWidget.EditKeyPressed | QTableWidget.AnyKeyPressed if self.ui.editTrigger.isChecked() else QTableWidget.NoEditTriggers)
         self.setTempMessage('Edit mode enabled' if self.ui.editTrigger.isChecked() else 'Edit mode disabled')
 
     def setTempMessage(self, message: str):
@@ -397,8 +371,8 @@ class ManagementUI(QMainWindow):
             table.resizeColumnsToContents()
 
         populateTable(self.ui.worksheetTable, self.allWorksheets, [0, 1, 3, 4])
-        populateTable(self.ui.recordTable, self.allRecords, [0, 1, 3, 4])
-        populateTable(self.ui.pathTable, self.allWorksheetPaths, [0, 1, 3, 4])
+        populateTable(self.ui.recordTable, self.allRecords, [0, 1, 2, 3, 4])
+        populateTable(self.ui.pathTable, self.allWorksheetPaths, [0, 1, 2])
 
 def managementGUI():
     """

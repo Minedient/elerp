@@ -168,6 +168,15 @@ def getWorksheetPaths(d_path):
     conn.close()
     return worksheet_paths
 
+def updateWorksheet(d_path, column, value, condition):
+    conn = sqlite3.connect(d_path)
+    c = conn.cursor()
+    query = """UPDATE worksheets SET {} = ? WHERE sheet_id = ?""".format(column)
+    c.execute(query, (value, condition))
+    c.close()
+    conn.commit()
+    conn.close()
+
 def updateTable(d_path, table, column, value, condition):
     conn = sqlite3.connect(d_path)
     c = conn.cursor()

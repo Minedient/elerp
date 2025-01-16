@@ -11,7 +11,7 @@ import traceback
 import os
 import logging, colorlog
 
-from PySide6.QtWidgets import QApplication, QMainWindow, QTableWidgetItem, QTableWidget
+from PySide6.QtWidgets import QApplication, QMainWindow, QTableWidgetItem, QTableWidget, QMessageBox
 from PySide6.QtCore import QTimer, Qt
 
 ### GUI ###
@@ -293,6 +293,9 @@ class ManagementUI(QMainWindow):
         self.ui.editTrigger.toggled.connect(self.setTableEditModes)
         self.ui.refreshButton.clicked.connect(self.refreshTables)
         self.ui.saveButton.clicked.connect(self.saveChanges)
+
+
+        #self.ui.centralwidget.keyPressEvent = lambda event: self.saveChanges() if event.key() == Qt.Key_Enter else None
         
     class EditHistory:
         def __init__(self, table, row, column, oldValue, newValue):
@@ -304,32 +307,65 @@ class ManagementUI(QMainWindow):
 
         def __str__(self):
             return f'{self.table} - Row: {self.row}, Column: {self.column}, Old Value: {self.oldValue}, New Value: {self.newValue}'
+        
+    def closeEvent(self, event):
+        if len(self.editHistories) > 0:
+            isSave = QMessageBox.question(self, 'Save changes', 'There are unsaved changes. Are you sure you want to close?', QMessageBox.Yes | QMessageBox.No)
+            if isSave == QMessageBox.Yes:
+                self.saveChanges()
+                return super().closeEvent(event)
+            else:
+                return event.ignore()
 
     def addEditHistory(self, table, row, column, oldValue, newValue):
         if oldValue != newValue:
             self.editHistories.append(self.EditHistory(table, row, column, oldValue, newValue))
 
-    def saveChanges(self):
-        logger.info('Saving changes in management GUI')
-        for edit in self.editHistories:
-            if edit.table == 'worksheet':
-                db.updateTable(DATABASE_PATH, edit.table, self.columnName(edit.table, edit.column), edit.newValue, f'ID={self.allWorksheets[edit.row][0]}')
-            #if edit.table == 'worksheet':
-                #db.updateWorksheet(DATABASE_PATH, self.allWorksheets[edit.row][0], edit.
-            #elif edit.table == 'record':
-            #    db.updateRecord(DATABASE_PATH, self.allRecords[edit.row][0], edit.column, edit.newValue)
-            #elif edit.table == 'path':
-            #    db.updateWorksheetPath(DATABASE_PATH, self.allWorksheetPaths[edit.row][0], edit.column, edit.newValue)
-        self.setTempMessage('Changes saved')
-        self.refreshTables()
-
-    def columnName(table, index):
+    def columnName(self, table, index):
         if table == 'worksheet':
-            return ['ID', 'Name', 'Description', 'Upload Date', 'Last Update Date', 'Subject', 'Form'][index]
+            return ['sheed_id', 'name', 'description', 'upload_date', 'last_update', 'subject', 'form'][index]
         elif table == 'record':
             return ['ID', 'WorksheetID', 'Use Date', 'Class', 'Teacher'][index]
         elif table == 'path':
             return ['ID', 'WorksheetID', 'File Path'][index]
+
+    def saveChanges(self):
+        if len(self.editHistories) == 0:
+            self.setTempMessage('No changes to save')
+            return
+
+        isSave = QMessageBox.question(self, 'Save changes', 'Are you sure you want to save the changes?', QMessageBox.Yes | QMessageBox.No)
+        if isSave == QMessageBox.No:
+            return
+
+
+        logger.info('Saving changes in management GUI')
+        for edit in self.editHistories:
+            if edit.table == 'worksheet':
+                print(f"UPDATE worksheets SET {self.columnName(edit.table, edit.column)}={edit.newValue} WHERE sheet_id={self.allWorksheets[edit.row][0]}")
+                db.updateWorksheet(DATABASE_PATH, self.columnName(edit.table, edit.column), edit.newValue, self.allWorksheets[edit.row][0])
+        self.setTempMessage('Changes saved')
+        # Clear the edit histories
+        self.editHistories.clear()
+
+        self.setTableSignalsBlockingMode(True)
+        self.refreshTables()    # Refresh the tables to reflect the changes, signal blocking is enabled to prevent the edit signals from being triggered
+        self.setTableSignalsBlockingMode(False)
+
+    def setTableSignalsBlockingMode(self, mode: bool):
+        """
+        Set the blocking mode of the signals of the tables.
+        True to block, False to unblock.
+        
+        Args:
+            mode (bool): The blocking mode.
+            
+        Returns:    
+            None
+        """
+        self.ui.worksheetTable.blockSignals(mode)
+        self.ui.recordTable.blockSignals(mode)
+        self.ui.pathTable.blockSignals(mode)
 
     def setTableEditModes(self):
         self.ui.worksheetTable.setEditTriggers(QTableWidget.DoubleClicked | QTableWidget.EditKeyPressed | QTableWidget.AnyKeyPressed if self.ui.editTrigger.isChecked() else QTableWidget.NoEditTriggers)
@@ -351,7 +387,7 @@ class ManagementUI(QMainWindow):
         self.allWorksheetPaths = db.getWorksheetPaths(DATABASE_PATH)
         self.allRecords = db.getRecords(DATABASE_PATH)
 
-        def populateTable(table, data, non_editable_columns):
+        def populateTable(table: QTableWidget, data, non_editable_columns: list):
             table.setRowCount(len(data))
             for i, row in enumerate(data):
                 for j, item in enumerate(row):

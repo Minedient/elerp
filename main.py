@@ -542,6 +542,7 @@ if __name__ == '__main__':
     if not addr[0] and addr[1]:
         QMessageBox.critical(None, 'Error', 'No server found')
         sys.exit(1)
+
     # Create a QMessageBox that disappear after loading all the data from the server
     box = QMessageBox()
     box.setWindowTitle('Loading')

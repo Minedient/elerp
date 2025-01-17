@@ -39,7 +39,7 @@ subjects = None
 forms = None
 classes = None
 
-CLIENT_VERSION = '1.0.4'
+CLIENT_VERSION = '1.0.5'
 SERVER_UDP_PORT = 19864
 SERVER_TCP_PORT = 19865
 
@@ -542,12 +542,22 @@ if __name__ == '__main__':
     if not addr[0] and addr[1]:
         QMessageBox.critical(None, 'Error', 'No server found')
         sys.exit(1)
+    # Create a QMessageBox that disappear after loading all the data from the server
+    box = QMessageBox()
+    box.setWindowTitle('Loading')
+    box.setInformativeText('Please wait...')
+    box.setText('Loading data from server...')
+    box.setStandardButtons(QMessageBox.NoButton)
+    box.accepted.connect(box.close)
+    box.show()
+
     conn = connectToServer(addr[0], SERVER_TCP_PORT, logger)
     testConnection(conn)    # Test the connection, should return OK
     checkUpdate(conn)       # Check for update
     getGlobalData(conn)     # Get the global data
 
     window = MainWindow()
+    box.accept()    # Close the loading box
     window.show()
 
     sys.exit(app.exec())

@@ -177,6 +177,14 @@ def updateWorksheet(d_path, column, value, condition):
     conn.commit()
     conn.close()
 
+def resetRecordsTable(d_path):
+    conn = sqlite3.connect(d_path)
+    c = conn.cursor()
+    c.execute("DELETE FROM records")
+    c.close()
+    conn.commit()
+    conn.close()
+
 def resetDatabaseToDefault(d_path):
     conn = sqlite3.connect(d_path)
     c = conn.cursor()

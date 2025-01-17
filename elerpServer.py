@@ -385,17 +385,17 @@ def exportToCSV():
     """
     currentTime = datetime.now().strftime('%Y-%m-%d %H-%M-%S')
     fileNames = [f'{currentTime}_worksheets.csv', f'{currentTime}_records.csv', f'{currentTime}_paths.csv']
-    with open(fileNames[0], 'w') as file:
+    with open(fileNames[0], 'w', encoding='utf-8') as file:
         file.write('Worksheet ID, Name, Description, Upload Date, Last Update Date, Subject, Form\n')
         for worksheet in db.getWorksheets(DATABASE_PATH):
             file.write(','.join(map(str, worksheet)) + '\n')
 
-    with open(fileNames[1], 'w') as file:
+    with open(fileNames[1], 'w', encoding='utf-8') as file:
         file.write('Record ID, Worksheet ID, Use Date, Class, Teacher\n')
         for record in db.getRecords(DATABASE_PATH):
             file.write(','.join(map(str, record)) + '\n')
 
-    with open(fileNames[2], 'w') as file:
+    with open(fileNames[2], 'w', encoding='utf-8') as file:
         file.write('Path ID, Worksheet ID, File Path\n')
         for path in db.getWorksheetPaths(DATABASE_PATH):
             file.write(','.join(map(str, path)) + '\n')
@@ -446,11 +446,15 @@ if __name__ == '__main__':
             print(progRes)
         elif command == 'reset':
             db.resetDatabaseToDefault(DATABASE_PATH)
+        elif command == 'r_record':
+            db.resetRecordsTable(DATABASE_PATH)
         elif command == 'version':
             print(SERVER_VERSION)
         elif command == 'database':
             print('Working in progress')
             managementGUI()
+        elif command == 'csv':
+            exportToCSV()
         pass
 
     print('Stopping broadcast listener thread...')

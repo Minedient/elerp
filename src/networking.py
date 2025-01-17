@@ -10,7 +10,7 @@ handler = ProtocolHandler()
 UDPCallback = Callable[[ProtocolData, tuple], None]
 TCPCallback = Callable[[socket.socket, tuple], None]
 
-def searchServer(serverPort, identifier, logger = None):
+def searchServer(serverPort, identifier, logger = None, timeout = 3):
     """
     Search for the target server on the local network.
     It works by sending a broadcast message to the local network using UDP protocol.
@@ -34,7 +34,7 @@ def searchServer(serverPort, identifier, logger = None):
     s.sendto(message.encode(), ('255.255.255.255', serverPort))
 
     # Wait for the server to respond
-    s.settimeout(3)
+    s.settimeout(timeout)
     try:
         data, addr = s.recvfrom(4096)
         response = handler.deserializeMessageAsProtocolData(data.decode())
@@ -61,7 +61,7 @@ def searchServer(serverPort, identifier, logger = None):
         return None, None
     s.close()
 
-def connectToServer(serverIP, serverPort, logger = None):
+def connectToServer(serverIP, serverPort, logger = None, timeout = 3):
     """
     Establish a TCP connection with the server.
 
@@ -72,7 +72,7 @@ def connectToServer(serverIP, serverPort, logger = None):
         conn: The connection object.
     """
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.settimeout(3)
+    s.settimeout(timeout)
     s.connect((serverIP, serverPort))
     if logger:
         logger.info(f"Connected to server {serverIP}:{serverPort}")

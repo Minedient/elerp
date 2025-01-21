@@ -21,64 +21,7 @@
        <string>Action</string>
       </property>
       <layout class="QGridLayout" name="gridLayout">
-       <item row="0" column="3">
-        <widget class="QLabel" name="label_3">
-         <property name="text">
-          <string>Refresh Tables</string>
-         </property>
-         <property name="buddy">
-          <cstring>refreshButton</cstring>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="1">
-        <widget class="QPushButton" name="saveButton">
-         <property name="text">
-          <string>Click</string>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="0">
-        <widget class="QLabel" name="label_2">
-         <property name="text">
-          <string>Edit Item</string>
-         </property>
-         <property name="buddy">
-          <cstring>editTrigger</cstring>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="0">
-        <widget class="QLabel" name="label">
-         <property name="text">
-          <string>Save Database</string>
-         </property>
-         <property name="buddy">
-          <cstring>saveButton</cstring>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="4">
-        <widget class="QPushButton" name="refreshButton">
-         <property name="text">
-          <string>Click</string>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="5">
-        <spacer name="horizontalSpacer">
-         <property name="orientation">
-          <enum>Qt::Orientation::Horizontal</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>40</width>
-           <height>20</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item row="1" column="2">
+       <item row="2" column="2">
         <spacer name="horizontalSpacer_2">
          <property name="orientation">
           <enum>Qt::Orientation::Horizontal</enum>
@@ -94,7 +37,71 @@
          </property>
         </spacer>
        </item>
-       <item row="1" column="1">
+       <item row="0" column="1">
+        <widget class="QPushButton" name="saveButton">
+         <property name="text">
+          <string>Click</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QLabel" name="label_2">
+         <property name="text">
+          <string>Edit Item</string>
+         </property>
+         <property name="buddy">
+          <cstring>editTrigger</cstring>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="5">
+        <widget class="QPushButton" name="refreshButton">
+         <property name="text">
+          <string>Click</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="5">
+        <widget class="QPushButton" name="removeEntryButton">
+         <property name="text">
+          <string>Click</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="0">
+        <widget class="QLabel" name="label">
+         <property name="text">
+          <string>Save Database</string>
+         </property>
+         <property name="buddy">
+          <cstring>saveButton</cstring>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="4">
+        <widget class="QLabel" name="label_3">
+         <property name="text">
+          <string>Refresh Tables</string>
+         </property>
+         <property name="buddy">
+          <cstring>refreshButton</cstring>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="6">
+        <spacer name="horizontalSpacer">
+         <property name="orientation">
+          <enum>Qt::Orientation::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="2" column="1">
         <widget class="QRadioButton" name="editTrigger">
          <property name="text">
           <string>Enabled</string>
@@ -104,10 +111,10 @@
          </property>
         </widget>
        </item>
-       <item row="1" column="3" colspan="2">
+       <item row="2" column="4">
         <widget class="QLabel" name="tempMessageLabel">
          <property name="text">
-          <string/>
+          <string>Remove Entry</string>
          </property>
         </widget>
        </item>
@@ -138,6 +145,9 @@
           </property>
           <property name="sizeAdjustPolicy">
            <enum>QAbstractScrollArea::SizeAdjustPolicy::AdjustToContents</enum>
+          </property>
+          <property name="dragDropMode">
+           <enum>QAbstractItemView::DragDropMode::NoDragDrop</enum>
           </property>
          </widget>
         </item>

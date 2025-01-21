@@ -15,7 +15,18 @@ def findStageByClass(class_name):
     splited = list(class_name)
     return 'Junior' if splited[0] == '1' or splited[0] == '2' or splited[0] == '3' else 'Senior'
 
-def create_database(d_path):
+def create_database(d_path: str) -> None:
+    """
+    Create the database with the tables worksheets, records and worksheet_paths, if it doesn't exist
+
+    This is used to initialize the database when the application is first run
+
+    Args:
+        d_path (str): The path to the database
+    
+    Returns:
+        None
+    """
     conn = sqlite3.connect(d_path)
     c = conn.cursor()
     c.execute('''CREATE TABLE worksheets
@@ -28,7 +39,22 @@ def create_database(d_path):
     conn.commit()
     conn.close()
 
-def insertWorksheet(d_path, name, description, upload_date, subject, form, last_update = dt.now().strftime('%Y-%m-%d %H:%M:%S')):
+def insertWorksheet(d_path:str, name:str, description:str, upload_date:str, subject:str, form:str, last_update = dt.now().strftime('%Y-%m-%d %H:%M:%S')) -> None:
+    """
+    Insert a new worksheet in the database
+
+    Args:
+        d_path (str): The path to the database
+        name (str): The name of the worksheet
+        description (str): The description of the worksheet
+        upload_date (str): The date of the upload
+        subject (str): The subject of the worksheet
+        form (str): The form of the worksheet
+        last_update (str): The date of the last update
+
+    Returns:
+        None
+    """
     conn = sqlite3.connect(d_path)
     c = conn.cursor()
     c.execute("INSERT INTO worksheets (name, description, upload_date, last_update, subject, form) VALUES (?, ?, ?, ?, ?, ?)", (name, description, upload_date, last_update, subject, form))
@@ -36,7 +62,17 @@ def insertWorksheet(d_path, name, description, upload_date, subject, form, last_
     conn.commit()
     conn.close()
 
-def checkWorksheet(d_path, name):
+def checkWorksheet(d_path: str, name: str) -> bool:
+    """
+    Check if a worksheet with the name exists in the database
+    
+    Args:
+        d_path (str): The path to the database
+        name (str): The name of the worksheet
+        
+    Returns:
+        bool: True if the worksheet exists, False otherwise
+    """
     conn = sqlite3.connect(d_path)
     c = conn.cursor()
     c.execute("SELECT * FROM worksheets WHERE name=?", (name,))
@@ -44,7 +80,17 @@ def checkWorksheet(d_path, name):
     conn.close()
     return worksheet
 
-def getWorksheetId(d_path, name):
+def getWorksheetId(d_path: str, name: str) -> int:
+    """
+    Get the id of a worksheet by its name
+    
+    Args:
+        d_path (str): The path to the database
+        name (str): The name of the worksheet
+        
+    Returns:
+        int: The id of the worksheet
+    """
     conn = sqlite3.connect(d_path)
     c = conn.cursor()
     c.execute("SELECT sheet_id FROM worksheets WHERE name=?", (name,))
@@ -52,7 +98,18 @@ def getWorksheetId(d_path, name):
     conn.close()
     return sheet_id[0]
 
-def alterWorksheetDateById(d_path, sheet_id, upload_date):
+def alterWorksheetDateById(d_path: str, sheet_id: int, upload_date: str) -> None:
+    """
+    Alter the upload date of a worksheet by its id
+    
+    Args:
+        d_path (str): The path to the database
+        sheet_id (int): The id of the worksheet
+        upload_date (str): The new upload date
+    
+    Returns:
+        None
+    """
     conn = sqlite3.connect(d_path)
     c = conn.cursor()
     c.execute("UPDATE worksheets SET upload_date=? WHERE sheet_id=?", (upload_date, sheet_id))
@@ -60,7 +117,18 @@ def alterWorksheetDateById(d_path, sheet_id, upload_date):
     conn.commit()
     conn.close()
 
-def insertWorksheetPath(d_path, sheet_id, file_path):
+def insertWorksheetPath(d_path: str, sheet_id: int, file_path: str) -> None:
+    """
+    Insert a new worksheet path in the database
+    
+    Args:
+        d_path (str): The path to the database
+        sheet_id (int): The id of the worksheet
+        file_path (str): The path to the worksheet
+        
+    Returns:
+        None
+    """
     conn = sqlite3.connect(d_path)
     c = conn.cursor()
     c.execute("INSERT INTO worksheet_paths (sheet_id, file_path) VALUES (?, ?, ?)", (sheet_id, file_path))
@@ -68,7 +136,23 @@ def insertWorksheetPath(d_path, sheet_id, file_path):
     conn.commit()
     conn.close()
 
-def insertWorksheetAndPath(d_path, name, description, upload_date, subject, form, file_path, last_update = dt.now().strftime('%Y-%m-%d %H:%M:%S')):
+def insertWorksheetAndPath(d_path: str, name: str, description: str, upload_date: str, subject: str, form: str, file_path: str, last_update = dt.now().strftime('%Y-%m-%d %H:%M:%S')):
+    """
+    Insert a new worksheet and its path in the database
+    
+    Args:
+        d_path (str): The path to the database
+        name (str): The name of the worksheet
+        description (str): The description of the worksheet
+        upload_date (str): The date of the upload
+        subject (str): The subject of the worksheet
+        form (str): The form of the worksheet
+        file_path (str): The path to the worksheet
+        last_update (str): The date of the last update
+        
+    Returns:
+        None
+    """
     conn = sqlite3.connect(d_path)
     c = conn.cursor()
     c.execute("INSERT INTO worksheets (name, description, upload_date, last_update, subject, form) VALUES (?, ?, ?, ?, ?, ?)", (name, description, upload_date, last_update, subject, form))
@@ -152,7 +236,16 @@ def getWorksheets(d_path):
     conn.close()
     return worksheets
 
-def getRecords(d_path):
+def getRecords(d_path: str) -> list:
+    """
+    Get all records from the database
+
+    Args:
+        d_path (str): The path to the database
+    
+    Returns:
+        list: A list with all records
+    """
     conn = sqlite3.connect(d_path)
     c = conn.cursor()
     c.execute("SELECT * FROM records")
@@ -160,7 +253,52 @@ def getRecords(d_path):
     conn.close()
     return records
 
-def getWorksheetPaths(d_path):
+def getRecordsByClass(d_path:str, class_name:str) -> list:
+    """
+    Get all records registered with a specific class
+
+    Args:
+        d_path (str): The path to the database
+        class_name (str): The class name
+
+    Returns:
+        list: A list with all records with the class name
+    """
+    conn = sqlite3.connect(d_path)
+    c = conn.cursor()
+    c.execute("SELECT * FROM records WHERE class=?", (class_name,))
+    records = c.fetchall()
+    conn.close()
+    return records
+
+def getRecordsByTeacher(d_path:str, teacher:str) -> list:
+    """
+    Get all records registered with a specific teacher
+
+    Args:
+        d_path (str): The path to the database
+        teacher (str): The teacher name
+
+    Returns:
+        list: A list with all records with the teacher name
+    """
+    conn = sqlite3.connect(d_path)
+    c = conn.cursor()
+    c.execute("SELECT * FROM records WHERE teacher=?", (teacher,))
+    records = c.fetchall()
+    conn.close()
+    return records
+
+def getWorksheetPaths(d_path:str) -> list:
+    """
+    Get all worksheet paths from the database
+
+    Args:
+        d_path (str): The path to the database
+        
+    Returns:
+        list: A list with all worksheet paths 
+    """
     conn = sqlite3.connect(d_path)
     c = conn.cursor()
     c.execute("SELECT * FROM worksheet_paths")
@@ -168,7 +306,19 @@ def getWorksheetPaths(d_path):
     conn.close()
     return worksheet_paths
 
-def updateWorksheet(d_path, column, value, condition):
+def updateWorksheet(d_path: str, column: str, value: str, condition: str) -> None:
+    """
+    Update a worksheet in the database
+    
+    Args:
+        d_path (str): The path to the database
+        column (str): The column to be updated
+        value (str): The new value
+        condition (str): The condition to be met
+        
+    Returns:
+        None
+    """
     conn = sqlite3.connect(d_path)
     c = conn.cursor()
     query = """UPDATE worksheets SET {} = ? WHERE sheet_id = ?""".format(column)
@@ -177,7 +327,16 @@ def updateWorksheet(d_path, column, value, condition):
     conn.commit()
     conn.close()
 
-def resetRecordsTable(d_path):
+def resetRecordsTable(d_path: str) -> None:
+    """
+    Reset the records table in the database
+    
+    Args:
+        d_path (str): The path to the database
+    
+    Returns:
+        None
+    """
     conn = sqlite3.connect(d_path)
     c = conn.cursor()
     c.execute("DELETE FROM records")
@@ -185,7 +344,16 @@ def resetRecordsTable(d_path):
     conn.commit()
     conn.close()
 
-def resetDatabaseToDefault(d_path):
+def resetDatabaseToDefault(d_path: str) -> None:
+    """
+    Reset the database to its default state
+    
+    Args:
+        d_path (str): The path to the database
+
+    Returns:
+        None
+    """
     conn = sqlite3.connect(d_path)
     c = conn.cursor()
     c.execute("DELETE FROM worksheets")
@@ -195,8 +363,24 @@ def resetDatabaseToDefault(d_path):
     conn.commit()
     conn.close()
 
+def removeRecord(d_path: str, record_id: int) -> None:
+    """
+    Remove a record from the database by its id
+    
+    Args:
+        d_path (str): The path to the database
+        record_id (int): The id of the record
+    
+    Returns:
+        None
+    """
+    conn = sqlite3.connect(d_path)
+    c = conn.cursor()
+    c.execute("DELETE FROM records WHERE record_id=?", (record_id,))
+    c.close()
+    conn.commit()
+    conn.close()
+
 if __name__ == '__main__':
     create_database('data/database.db')
-    #resetDatabaseToDefault('data/database.db')
-    #alterWorksheetDateById('data/database.db', 1, '2024-12-23 15:44:39')
     pass

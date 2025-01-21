@@ -6,6 +6,7 @@ from src.protocol import REQUEST, ExecutorScope, ProtocolExecutor, ProtocolData,
 from src.helper import sendMessage, recvMessage
 import database as db
 from src.networking import createUDPThread, createTCPThread
+import argparse
 
 import base64
 import traceback
@@ -16,7 +17,8 @@ from PySide6.QtWidgets import QApplication, QMainWindow, QTableWidgetItem, QTabl
 from PySide6.QtCore import QTimer, Qt
 
 ### GUI ###
-from ui.ui_management import Ui_MainWindow
+from ui.management_ui import Ui_MainWindow
+from ui.entryRemoveWizard_ui import Ui_EntryRemoveWizard
 
 LOCAL_IP = socket.gethostbyname(socket.gethostname())
 UDP_PORT = 19864
@@ -304,6 +306,7 @@ class ManagementUI(QMainWindow):
         self.ui.editTrigger.toggled.connect(self.setTableEditModes)
         self.ui.refreshButton.clicked.connect(self.refreshTables)
         self.ui.saveButton.clicked.connect(self.saveChanges)
+        self.ui.removeEntryButton.clicked.connect(self.runRemoveWizard)
         
     def closeEvent(self, event):
         if len(self.editHistories) > 0:
@@ -356,6 +359,9 @@ class ManagementUI(QMainWindow):
         self.timer.timeout.connect(lambda: self.ui.tempMessageLabel.setText(''))
         self.timer.start()
 
+    def runRemoveWizard(self):
+        EntryRemoveWizard().exec_()
+
     def refreshTables(self):
         logger.info('Refreshing tables in management GUI')
         self.allWorksheets = db.getWorksheets(DATABASE_PATH)
@@ -374,6 +380,22 @@ class ManagementUI(QMainWindow):
         populateTable(self.ui.worksheetTable, self.allWorksheets, [0, 1, 3, 4])
         populateTable(self.ui.recordTable, self.allRecords, [0, 1, 2, 3, 4])
         populateTable(self.ui.pathTable, self.allWorksheetPaths, [0, 1, 2])
+
+class EntryRemoveWizard(Ui_EntryRemoveWizard):
+    """
+    A wizard GUI element used to remove entries from the database.
+
+    The user first select the table to remove the entry from, then the user selects the row to remove.
+
+    After pressing the remove button, the wizard will ask the user if they are sure to remove the entry.
+
+    If the user confirms, the entry will be removed from the database, and a refresh signal will be sent to the main window to update the tables.
+
+    When the user press the finish button, the wizard will close and the main management window will be updated.
+    """
+    def __init__(self):
+        super(EntryRemoveWizard, self).__init__()
+        self.setupUi(self)
 
 def exportToCSV():
     """

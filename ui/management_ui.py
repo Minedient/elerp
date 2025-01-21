@@ -35,10 +35,9 @@ class Ui_MainWindow(object):
         self.groupBox.setObjectName(u"groupBox")
         self.gridLayout = QGridLayout(self.groupBox)
         self.gridLayout.setObjectName(u"gridLayout")
-        self.label_3 = QLabel(self.groupBox)
-        self.label_3.setObjectName(u"label_3")
+        self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
 
-        self.gridLayout.addWidget(self.label_3, 0, 3, 1, 1)
+        self.gridLayout.addItem(self.horizontalSpacer_2, 2, 2, 1, 1)
 
         self.saveButton = QPushButton(self.groupBox)
         self.saveButton.setObjectName(u"saveButton")
@@ -48,36 +47,42 @@ class Ui_MainWindow(object):
         self.label_2 = QLabel(self.groupBox)
         self.label_2.setObjectName(u"label_2")
 
-        self.gridLayout.addWidget(self.label_2, 1, 0, 1, 1)
+        self.gridLayout.addWidget(self.label_2, 2, 0, 1, 1)
+
+        self.refreshButton = QPushButton(self.groupBox)
+        self.refreshButton.setObjectName(u"refreshButton")
+
+        self.gridLayout.addWidget(self.refreshButton, 0, 5, 1, 1)
+
+        self.removeEntryButton = QPushButton(self.groupBox)
+        self.removeEntryButton.setObjectName(u"removeEntryButton")
+
+        self.gridLayout.addWidget(self.removeEntryButton, 2, 5, 1, 1)
 
         self.label = QLabel(self.groupBox)
         self.label.setObjectName(u"label")
 
         self.gridLayout.addWidget(self.label, 0, 0, 1, 1)
 
-        self.refreshButton = QPushButton(self.groupBox)
-        self.refreshButton.setObjectName(u"refreshButton")
+        self.label_3 = QLabel(self.groupBox)
+        self.label_3.setObjectName(u"label_3")
 
-        self.gridLayout.addWidget(self.refreshButton, 0, 4, 1, 1)
+        self.gridLayout.addWidget(self.label_3, 0, 4, 1, 1)
 
         self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
-        self.gridLayout.addItem(self.horizontalSpacer, 1, 5, 1, 1)
-
-        self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
-
-        self.gridLayout.addItem(self.horizontalSpacer_2, 1, 2, 1, 1)
+        self.gridLayout.addItem(self.horizontalSpacer, 2, 6, 1, 1)
 
         self.editTrigger = QRadioButton(self.groupBox)
         self.editTrigger.setObjectName(u"editTrigger")
         self.editTrigger.setChecked(True)
 
-        self.gridLayout.addWidget(self.editTrigger, 1, 1, 1, 1)
+        self.gridLayout.addWidget(self.editTrigger, 2, 1, 1, 1)
 
         self.tempMessageLabel = QLabel(self.groupBox)
         self.tempMessageLabel.setObjectName(u"tempMessageLabel")
 
-        self.gridLayout.addWidget(self.tempMessageLabel, 1, 3, 1, 2)
+        self.gridLayout.addWidget(self.tempMessageLabel, 2, 4, 1, 1)
 
 
         self.verticalLayout.addWidget(self.groupBox)
@@ -99,6 +104,7 @@ class Ui_MainWindow(object):
         self.worksheetTable.setObjectName(u"worksheetTable")
         self.worksheetTable.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.worksheetTable.setSizeAdjustPolicy(QAbstractScrollArea.SizeAdjustPolicy.AdjustToContents)
+        self.worksheetTable.setDragDropMode(QAbstractItemView.DragDropMode.NoDragDrop)
 
         self.horizontalLayout.addWidget(self.worksheetTable)
 
@@ -141,9 +147,9 @@ class Ui_MainWindow(object):
         self.statusbar.setObjectName(u"statusbar")
         MainWindow.setStatusBar(self.statusbar)
 #if QT_CONFIG(shortcut)
-        self.label_3.setBuddy(self.refreshButton)
         self.label_2.setBuddy(self.editTrigger)
         self.label.setBuddy(self.saveButton)
+        self.label_3.setBuddy(self.refreshButton)
 #endif // QT_CONFIG(shortcut)
 
         self.retranslateUi(MainWindow)
@@ -157,13 +163,14 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Database Management GUI", None))
         self.groupBox.setTitle(QCoreApplication.translate("MainWindow", u"Action", None))
-        self.label_3.setText(QCoreApplication.translate("MainWindow", u"Refresh Tables", None))
         self.saveButton.setText(QCoreApplication.translate("MainWindow", u"Click", None))
         self.label_2.setText(QCoreApplication.translate("MainWindow", u"Edit Item", None))
-        self.label.setText(QCoreApplication.translate("MainWindow", u"Save Database", None))
         self.refreshButton.setText(QCoreApplication.translate("MainWindow", u"Click", None))
+        self.removeEntryButton.setText(QCoreApplication.translate("MainWindow", u"Click", None))
+        self.label.setText(QCoreApplication.translate("MainWindow", u"Save Database", None))
+        self.label_3.setText(QCoreApplication.translate("MainWindow", u"Refresh Tables", None))
         self.editTrigger.setText(QCoreApplication.translate("MainWindow", u"Enabled", None))
-        self.tempMessageLabel.setText("")
+        self.tempMessageLabel.setText(QCoreApplication.translate("MainWindow", u"Remove Entry", None))
         self.databaseTabWidget.setTabText(self.databaseTabWidget.indexOf(self.worksheetWidget), QCoreApplication.translate("MainWindow", u"Worksheet", None))
         self.databaseTabWidget.setTabText(self.databaseTabWidget.indexOf(self.pathWidget), QCoreApplication.translate("MainWindow", u"Worksheet Path", None))
         self.databaseTabWidget.setTabText(self.databaseTabWidget.indexOf(self.recordWidget), QCoreApplication.translate("MainWindow", u"Record", None))

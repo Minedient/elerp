@@ -13,7 +13,7 @@ import traceback
 import os
 import logging, colorlog
 
-from PySide6.QtWidgets import QApplication, QMainWindow, QTableWidgetItem, QTableWidget, QMessageBox
+from PySide6.QtWidgets import QApplication, QMainWindow, QTableWidgetItem, QTableWidget, QMessageBox, QDialog
 from PySide6.QtCore import QTimer, Qt
 
 ### GUI ###
@@ -306,7 +306,9 @@ class ManagementUI(QMainWindow):
         self.ui.editTrigger.toggled.connect(self.setTableEditModes)
         self.ui.refreshButton.clicked.connect(self.refreshTables)
         self.ui.saveButton.clicked.connect(self.saveChanges)
-        self.ui.removeEntryButton.clicked.connect(self.runRemoveWizard)
+
+        # Pass the tab names to the remove entry wizard
+        self.ui.removeEntryButton.clicked.connect(lambda: self.runRemoveEntryWizard(self.ui.databaseTabWidget.tabText(i) for i in range(self.ui.databaseTabWidget.count())))
         
     def closeEvent(self, event):
         if len(self.editHistories) > 0:
@@ -359,8 +361,9 @@ class ManagementUI(QMainWindow):
         self.timer.timeout.connect(lambda: self.ui.tempMessageLabel.setText(''))
         self.timer.start()
 
-    def runRemoveWizard(self):
-        EntryRemoveWizard().exec_()
+    def runRemoveEntryWizard(self, tablesNames: list[str]):
+        wizard = EntryRemoveWizard(tablesNames)
+        wizard.exec()
 
     def refreshTables(self):
         logger.info('Refreshing tables in management GUI')
@@ -381,7 +384,7 @@ class ManagementUI(QMainWindow):
         populateTable(self.ui.recordTable, self.allRecords, [0, 1, 2, 3, 4])
         populateTable(self.ui.pathTable, self.allWorksheetPaths, [0, 1, 2])
 
-class EntryRemoveWizard(Ui_EntryRemoveWizard):
+class EntryRemoveWizard(QDialog):
     """
     A wizard GUI element used to remove entries from the database.
 
@@ -393,9 +396,26 @@ class EntryRemoveWizard(Ui_EntryRemoveWizard):
 
     When the user press the finish button, the wizard will close and the main management window will be updated.
     """
-    def __init__(self):
+    def __init__(self, tablesNames: list[str]):
         super(EntryRemoveWizard, self).__init__()
-        self.setupUi(self)
+        self.ui = Ui_EntryRemoveWizard()
+        self.ui.setupUi(self)
+
+        self.ui.tableCombox.currentIndexChanged.connect(self.fillTableData)
+        self.ui.tableCombox.addItems(tablesNames)
+
+
+    def fillTableData(self):
+        table = self.ui.tableCombox.currentText()
+        # Get the data from the database directly, usually this will be the same with the data in the main window
+        # But this is to ensure that the data is up to date
+        data = db.getWorksheets(DATABASE_PATH) if table == 'Worksheets' else db.getRecords(DATABASE_PATH) if table == 'Records' else db.getWorksheetPaths(DATABASE_PATH)
+        #TODO Not working, need to fix, can try to pull data from the management window instead, and ensure the management 
+
+
+        self.ui.rowCombox.clear()
+        self.ui.rowCombox.addItems(map(str, range(len(data))))
+
 
 def exportToCSV():
     """
@@ -431,7 +451,7 @@ def managementGUI():
     """
     app = QApplication(sys.argv) if not QApplication.instance() else QApplication.instance()
     window = ManagementUI()
-    window.setWindowFlag(Qt.WindowStaysOnTopHint, True)
+    window.raise_()
     window.show()
     app.exec()
 
@@ -477,7 +497,6 @@ if __name__ == '__main__':
             managementGUI()
         elif command == 'csv':
             exportToCSV()
-        pass
 
     print('Stopping broadcast listener thread...')
     broadcastListenerThread.join()

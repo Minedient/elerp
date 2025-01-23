@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'entryRemoveWizard.ui'
+## Form generated from reading UI file 'entryRemoveWizardTztXEK.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.8.1
+## Created by: Qt User Interface Compiler version 6.8.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -18,8 +18,8 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
 from PySide6.QtWidgets import (QAbstractButton, QApplication, QComboBox, QDialog,
     QDialogButtonBox, QFrame, QGridLayout, QGroupBox,
     QHBoxLayout, QHeaderView, QLabel, QPushButton,
-    QSizePolicy, QSpacerItem, QTableView, QVBoxLayout,
-    QWidget)
+    QSizePolicy, QSpacerItem, QTableWidget, QTableWidgetItem,
+    QVBoxLayout, QWidget)
 
 class Ui_EntryRemoveWizard(object):
     def setupUi(self, EntryRemoveWizard):
@@ -47,10 +47,10 @@ class Ui_EntryRemoveWizard(object):
 
         self.horizontalLayout.addWidget(self.label)
 
-        self.comboBox = QComboBox(self.groupBox)
-        self.comboBox.setObjectName(u"comboBox")
+        self.tableCombox = QComboBox(self.groupBox)
+        self.tableCombox.setObjectName(u"tableCombox")
 
-        self.horizontalLayout.addWidget(self.comboBox)
+        self.horizontalLayout.addWidget(self.tableCombox)
 
 
         self.verticalLayout.addWidget(self.groupBox)
@@ -73,20 +73,20 @@ class Ui_EntryRemoveWizard(object):
 
         self.gridLayout.addWidget(self.label_2, 1, 0, 1, 1)
 
-        self.tableView = QTableView(self.groupBox_2)
-        self.tableView.setObjectName(u"tableView")
+        self.rowCombox = QComboBox(self.groupBox_2)
+        self.rowCombox.setObjectName(u"rowCombox")
 
-        self.gridLayout.addWidget(self.tableView, 0, 0, 1, 2)
-
-        self.comboBox_2 = QComboBox(self.groupBox_2)
-        self.comboBox_2.setObjectName(u"comboBox_2")
-
-        self.gridLayout.addWidget(self.comboBox_2, 1, 1, 1, 1)
+        self.gridLayout.addWidget(self.rowCombox, 1, 1, 1, 1)
 
         self.removeButton = QPushButton(self.groupBox_2)
         self.removeButton.setObjectName(u"removeButton")
 
         self.gridLayout.addWidget(self.removeButton, 2, 0, 1, 2)
+
+        self.tableWidget = QTableWidget(self.groupBox_2)
+        self.tableWidget.setObjectName(u"tableWidget")
+
+        self.gridLayout.addWidget(self.tableWidget, 0, 0, 1, 2)
 
 
         self.verticalLayout.addWidget(self.groupBox_2)

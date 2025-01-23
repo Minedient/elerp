@@ -14,7 +14,8 @@ Welcome to the Extra Learning Exercise Record Platform (ELEP) project! This plat
 
 ## Introduction
 
-ELERP is a platform that records substitution class exercises usage
+ELERP is a platform that records substitution class exercises usage, user can upload new exercises worksheet to the server or register an usage easily
+using the GUI.
 
 ## Features
 

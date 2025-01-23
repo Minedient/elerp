@@ -7,15 +7,15 @@ from datetime import datetime as dt
 # For the worksheets table, the columns are: sheet_id, name, description, upload_date, last_update, subject, form and teacher
 # For the records table, the columns are: record_id, sheet_id (as foreign key), use_date, class, teacher
 
-def findFormByClass(class_name):
+def findFormByClass(class_name: str) -> str:
     splited = list(class_name)
     return 'Form ' + splited[0]
 
-def findStageByClass(class_name):
+def findStageByClass(class_name: str) -> str:
     splited = list(class_name)
     return 'Junior' if splited[0] == '1' or splited[0] == '2' or splited[0] == '3' else 'Senior'
 
-def create_database(d_path: str) -> None:
+def createDatabase(d_path: str) -> None:
     """
     Create the database with the tables worksheets, records and worksheet_paths, if it doesn't exist
 
@@ -162,7 +162,17 @@ def insertWorksheetAndPath(d_path: str, name: str, description: str, upload_date
     conn.commit()
     conn.close()
 
-def findUnusedWorksheets(d_path, class_name):
+def findUnusedWorksheets(d_path: str, class_name: str) -> list:
+    """
+    Find all worksheets that have not been used by a specific class
+    
+    Args:
+        d_path (str): The path to the database
+        class_name (str): The class name
+
+    Returns:
+        list: A list with all unused worksheets
+    """
     conn = sqlite3.connect(d_path)
     c = conn.cursor()
     c.execute("SELECT name, description, subject, form FROM worksheets WHERE sheet_id NOT IN (SELECT sheet_id FROM records WHERE class=?)", (class_name,))
@@ -170,7 +180,17 @@ def findUnusedWorksheets(d_path, class_name):
     conn.close()
     return worksheets
 
-def findUnusedWorksheetsMatchClass(d_path, class_name):
+def findUnusedWorksheetsMatchClass(d_path: str, class_name: str) -> list:
+    """
+    Find all worksheets that have not been used by a specific class and match the class form
+    
+    Args:
+        d_path (str): The path to the database
+        class_name (str): The class name
+
+    Returns:
+        list: A list with all unused worksheets that match the class form
+    """
     conn = sqlite3.connect(d_path)
     c = conn.cursor()
     c.execute("SELECT name, description, subject, form FROM worksheets WHERE sheet_id NOT IN (SELECT sheet_id FROM records WHERE class=?) INTERSECT SELECT name, description, subject, form FROM worksheets WHERE form = ? OR form = ? OR form = 'All'", (class_name, findFormByClass(class_name), findStageByClass(class_name),))
@@ -178,7 +198,19 @@ def findUnusedWorksheetsMatchClass(d_path, class_name):
     conn.close()
     return worksheets
 
-def registerWorksheetUse(d_path, sheet_id, class_name, teacher):
+def registerWorksheetUse(d_path: str, sheet_id: int, class_name: str, teacher: str) -> None:
+    """
+    Register the use of a worksheet in the database
+    
+    Args:
+        d_path (str): The path to the database
+        sheet_id (int): The id of the worksheet
+        class_name (str): The class name
+        teacher (str): The teacher name
+    
+    Returns:
+        None
+    """
     use_date = dt.now().strftime('%Y-%m-%d %H:%M:%S')
     conn = sqlite3.connect(d_path)
     c = conn.cursor()
@@ -187,7 +219,17 @@ def registerWorksheetUse(d_path, sheet_id, class_name, teacher):
     conn.commit()
     conn.close()
 
-def getWorksheetPath(d_path, sheet_id):
+def getWorksheetPath(d_path: str, sheet_id: int) -> str:
+    """
+    Get the path of a worksheet by its id
+
+    Args:
+        d_path (str): The path to the database
+        sheet_id (int): The id of the worksheet
+    
+    Returns:
+        str: The path of the worksheet
+    """
     conn = sqlite3.connect(d_path)
     c = conn.cursor()
     c.execute("SELECT file_path FROM worksheet_paths WHERE sheet_id=?", (sheet_id,))
@@ -196,6 +238,16 @@ def getWorksheetPath(d_path, sheet_id):
     return file_path[0]
 
 def latestRecords(d_path, amount = 15):
+    """
+    Get the latest records from the database, by default 15 records are returned
+
+    Args:
+        d_path (str): The path to the database
+        amount (int): The amount of records to be returned (default is 15)
+    
+    Returns:
+        list: A list with the latest records
+    """
     conn = sqlite3.connect(d_path)
     c = conn.cursor()
     c.execute("SELECT r.teacher, r.class, w.name, r.use_date AS worksheet_name FROM records r INNER JOIN worksheets w ON r.sheet_id = w.sheet_id ORDER BY r.use_date DESC LIMIT ?", (amount,))
@@ -204,6 +256,16 @@ def latestRecords(d_path, amount = 15):
     return records
 
 def latestUploads(d_path, amount = 15):
+    """
+    Get the latest uploads from the database, by default 15 uploads are returned
+
+    Args:
+        d_path (str): The path to the database
+        amount (int): The amount of uploads to be returned (default is 15)
+
+    Returns:
+        list: A list with the latest uploads
+    """
     conn = sqlite3.connect(d_path)
     c = conn.cursor()
     c.execute("SELECT w.name, w.subject, w.form, w.last_update FROM worksheets w ORDER BY w.last_update DESC LIMIT ?", (amount,))
@@ -212,6 +274,15 @@ def latestUploads(d_path, amount = 15):
     return worksheets
 
 def getWorksheetsCount(d_path):
+    """
+    Get the amount of worksheets in the database
+
+    Args:
+        d_path (str): The path to the database
+    
+    Returns:
+        int: The amount of worksheets in the database
+    """
     conn = sqlite3.connect(d_path)
     c = conn.cursor()
     c.execute("SELECT COUNT(*) FROM worksheets")
@@ -219,16 +290,16 @@ def getWorksheetsCount(d_path):
     conn.close()
     return count[0]
 
-# Function to insert a new record in the database
-def insert_record(d_path, sheet_id, use_date, class_name, teacher):
-    conn = sqlite3.connect(d_path)
-    c = conn.cursor()
-    c.execute("INSERT INTO records (sheet_id, use_date, class, teacher) VALUES (?, ?, ?, ?)", (sheet_id, use_date, class_name, teacher))
-    c.close()
-    conn.commit()
-    conn.close()
-
-def getWorksheets(d_path):
+def getWorksheets(d_path: str) -> list:
+    """"
+    Get all worksheets from the database
+    
+    Args:
+        d_path (str): The path to the database
+        
+    Returns:
+        list: A list with all worksheets
+    """
     conn = sqlite3.connect(d_path)
     c = conn.cursor()
     c.execute("SELECT * FROM worksheets")
@@ -253,7 +324,7 @@ def getRecords(d_path: str) -> list:
     conn.close()
     return records
 
-def getRecordsByClass(d_path:str, class_name:str) -> list:
+def getRecordsByClass(d_path: str, class_name: str) -> list:
     """
     Get all records registered with a specific class
 
@@ -271,7 +342,7 @@ def getRecordsByClass(d_path:str, class_name:str) -> list:
     conn.close()
     return records
 
-def getRecordsByTeacher(d_path:str, teacher:str) -> list:
+def getRecordsByTeacher(d_path: str, teacher: str) -> list:
     """
     Get all records registered with a specific teacher
 
@@ -289,7 +360,7 @@ def getRecordsByTeacher(d_path:str, teacher:str) -> list:
     conn.close()
     return records
 
-def getWorksheetPaths(d_path:str) -> list:
+def getWorksheetPaths(d_path: str) -> list:
     """
     Get all worksheet paths from the database
 
@@ -382,5 +453,5 @@ def removeRecord(d_path: str, record_id: int) -> None:
     conn.close()
 
 if __name__ == '__main__':
-    create_database('data/database.db')
+    createDatabase('data/database.db')
     pass

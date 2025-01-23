@@ -8,10 +8,28 @@ from datetime import datetime as dt
 # For the records table, the columns are: record_id, sheet_id (as foreign key), use_date, class, teacher
 
 def findFormByClass(class_name: str) -> str:
+    """
+    Find the form of a class by its name
+    
+    Args:
+        class_name (str): The class name
+
+    Returns:
+        str: The form of the class
+    """
     splited = list(class_name)
     return 'Form ' + splited[0]
 
 def findStageByClass(class_name: str) -> str:
+    """
+    Find the stage of a class by its name
+    
+    Args:
+        class_name (str): The class name
+        
+    Returns:
+        str: The stage of the class
+    """
     splited = list(class_name)
     return 'Junior' if splited[0] == '1' or splited[0] == '2' or splited[0] == '3' else 'Senior'
 

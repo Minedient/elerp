@@ -470,6 +470,25 @@ def removeRecord(d_path: str, record_id: int) -> None:
     conn.commit()
     conn.close()
 
+def runSQLCommand(d_path: str, command: str) -> None:
+    """
+    Run a SQL command in the database
+    
+    Args:
+        d_path (str): The path to the database
+        command (str): The SQL command
+    
+    Returns:
+        None
+    """
+    conn = sqlite3.connect(d_path)
+    c = conn.cursor()
+    c.execute(command)
+    result = c.fetchall()
+    print(result)
+    c.close()
+    conn.commit()
+    conn.close()
+
 if __name__ == '__main__':
     createDatabase('data/database.db')
-    pass

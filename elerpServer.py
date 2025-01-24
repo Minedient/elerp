@@ -409,13 +409,10 @@ class EntryRemoveWizard(QDialog):
         table = self.ui.tableCombox.currentText()
         # Get the data from the database directly, usually this will be the same with the data in the main window
         # But this is to ensure that the data is up to date
-        data = db.getWorksheets(DATABASE_PATH) if table == 'Worksheets' else db.getRecords(DATABASE_PATH) if table == 'Records' else db.getWorksheetPaths(DATABASE_PATH)
-        #TODO Not working, need to fix, can try to pull data from the management window instead, and ensure the management 
-
-
+        data = db.getWorksheets(DATABASE_PATH) if table == 'Worksheet' else db.getRecords(DATABASE_PATH) if table == 'Record' else db.getWorksheetPaths(DATABASE_PATH)
+        #Dumb Me! The database is empty!
         self.ui.rowCombox.clear()
         self.ui.rowCombox.addItems(map(str, range(len(data))))
-
 
 def exportToCSV():
     """
@@ -478,6 +475,7 @@ if __name__ == '__main__':
         print('version --- Show server version')
         print('database --- Database management tools')
         print('csv --- Export database to csv')
+        print('sql --- Run SQL command')
         command = input('Enter command: ')
         if command == 'q':
             stop.set()
@@ -497,6 +495,8 @@ if __name__ == '__main__':
             managementGUI()
         elif command == 'csv':
             exportToCSV()
+        elif command == 'sql':
+            db.runSQLCommand(DATABASE_PATH, input('Enter SQL command: '))
 
     print('Stopping broadcast listener thread...')
     broadcastListenerThread.join()

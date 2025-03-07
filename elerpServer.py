@@ -21,17 +21,13 @@ from ui.management_ui import Ui_MainWindow
 from ui.entryRemoveWizard_ui import Ui_EntryRemoveWizard
 
 LOCAL_IP = socket.gethostbyname(socket.gethostname())
-UDP_PORT = 19864
-TCP_PORT = 19865
+PRODUCTION_UDP_PORT = 19864
+PRODUCTION_TCP_PORT = 19865
+DEVELOPMENT_UDP_PORT = 19866
+DEVELOPMENT_TCP_PORT = 19867
+SOCKETS = {'udp': PRODUCTION_UDP_PORT, 'tcp': PRODUCTION_TCP_PORT, 'socket_udp': None, 'socket_tcp': None}
 
-SERVER_SOCKET_UDP = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-SERVER_SOCKET_UDP.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-SERVER_SOCKET_UDP.bind((LOCAL_IP, UDP_PORT))
-
-SERVER_SOCKET_TCP = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-SERVER_SOCKET_TCP.bind((LOCAL_IP, TCP_PORT))
-
-SERVER_VERSION = '1.0.5'
+SERVER_VERSION = '1.0.7'
 
 # Resources Path
 RESOURCES_PATH = 'res/'
@@ -42,17 +38,29 @@ DATABASE_PATH = 'data/database.db'
 # Worksheet Path
 WORKSHEET_PATH = 'data/worksheets/'
 
-# Setup logging module
+# Setup logging module with colorlog, it should only log with WARNING level or higher
 logger = logging.getLogger('elerpServer')
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
+
 logHandler = logging.StreamHandler()
+logHandler.setLevel(logging.WARNING)
+
+# Setup file logging
+fileHandler = logging.FileHandler('runtime.log')
+fileHandler.setLevel(logging.INFO)
+
 formatter = colorlog.ColoredFormatter(
     "%(log_color)s%(asctime)s - %(levelname)s - %(message)s", 
     datefmt="%Y-%m-%d %H:%M:%S", 
     log_colors={ 'DEBUG': 'cyan', 'INFO': 'green', 'WARNING': 'yellow', 'ERROR': 'red', 'CRITICAL': 'bold_red', }
 )
+fileFormatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+
 logHandler.setFormatter(formatter)
+fileHandler.setFormatter(fileFormatter)
+
 logger.addHandler(logHandler)
+logger.addHandler(fileHandler)
 
 handler = ProtocolHandler()
 
@@ -88,7 +96,7 @@ def udpService(data: ProtocolData, addr: tuple):
         message = handler.prepMessage(RESPONSE.OK, mainMessage=LOCAL_IP).serializeMessage()
         logger.info(f'Client found: {addr}')
         logger.info(f'Sending server ip: {LOCAL_IP} to {addr} and wait for TCP connection')
-        SERVER_SOCKET_UDP.sendto(message.encode(), addr)
+        SOCKETS['socket_udp'].sendto(message.encode(), addr)
 
     executor = ProtocolExecutor(data)
     executor.addMessageHandler(sendToClient, REQUEST.POST, 'elerp_client', ExecutorScope.COMMAND)
@@ -99,7 +107,7 @@ def udpService(data: ProtocolData, addr: tuple):
         # The incoming message is send by an invalid client that uses the same protocol, but looking for other server
         message = handler.prepMessage(RESPONSE.ERROR, mainMessage=STATUS.INVALID_REQUEST).serializeMessage()
         logger.warning(f'Invalid client found: {addr} with message {data}')
-        SERVER_SOCKET_UDP.sendto(message.encode(), addr)
+        SOCKETS['socket_udp'].sendto(message.encode(), addr)
 
 def tcpService(conn: socket.socket, addr: tuple):
     """
@@ -308,7 +316,7 @@ class ManagementUI(QMainWindow):
         self.ui.saveButton.clicked.connect(self.saveChanges)
 
         # Pass the tab names to the remove entry wizard
-        self.ui.removeEntryButton.clicked.connect(lambda: self.runRemoveEntryWizard(self.ui.databaseTabWidget.tabText(i) for i in range(self.ui.databaseTabWidget.count())))
+        self.ui.removeEntryButton.clicked.connect(lambda: self.runRemoveEntryWizard(['Worksheet', 'Record']))
         
     def closeEvent(self, event):
         if len(self.editHistories) > 0:
@@ -384,6 +392,10 @@ class ManagementUI(QMainWindow):
         populateTable(self.ui.recordTable, self.allRecords, [0, 1, 2, 3, 4])
         populateTable(self.ui.pathTable, self.allWorksheetPaths, [0, 1, 2])
 
+        self.editHistories.clear()  # Clear the edit histories, as the tables are refreshed
+        self.setTempMessage('Tables refreshed')
+
+
 class EntryRemoveWizard(QDialog):
     """
     A wizard GUI element used to remove entries from the database.
@@ -404,15 +416,47 @@ class EntryRemoveWizard(QDialog):
         self.ui.tableCombox.currentIndexChanged.connect(self.fillTableData)
         self.ui.tableCombox.addItems(tablesNames)
 
+        self.ui.removeButton.clicked.connect(self.removeEntry)
+        self.ui.buttonBox.accepted.connect(self.accept)
 
     def fillTableData(self):
         table = self.ui.tableCombox.currentText()
         # Get the data from the database directly, usually this will be the same with the data in the main window
         # But this is to ensure that the data is up to date
-        data = db.getWorksheets(DATABASE_PATH) if table == 'Worksheet' else db.getRecords(DATABASE_PATH) if table == 'Record' else db.getWorksheetPaths(DATABASE_PATH)
+        data = db.getWorksheets(DATABASE_PATH) if table == 'Worksheet' else db.getRecords(DATABASE_PATH) 
         #Dumb Me! The database is empty!
         self.ui.rowCombox.clear()
-        self.ui.rowCombox.addItems(map(str, range(len(data))))
+        self.ui.rowCombox.addItems(map(lambda x: str(x+1), range(len(data))))
+
+        if len(data) == 0:
+            self.ui.rowCombox.addItem('No data')
+            return
+        
+        # Fill the table with database's data
+        self.ui.tableWidget.setRowCount(len(data))
+        self.ui.tableWidget.setColumnCount(len(data[0]))
+        self.ui.tableWidget.setHorizontalHeaderLabels(['ID', 'Name', 'Description', 'Upload Date', 'Last Update Date', 'Subject', 'Form'] if table == 'Worksheet' else ['ID', 'WorksheetID', 'Use Date', 'Class', 'Teacher'])
+        for i, row in enumerate(data):
+            for j, item in enumerate(row):
+                self.ui.tableWidget.setItem(i, j, QTableWidgetItem(str(item)))
+        self.ui.tableWidget.resizeColumnsToContents()
+
+    def removeEntry(self):
+        """
+        Remove the entry from the database.
+        The entry is removed based on the selected table and row.
+        """
+        table = self.ui.tableCombox.currentText()
+        row = self.ui.rowCombox.currentText()
+
+        if table == 'Worksheet':
+            db.removeWorksheet(DATABASE_PATH, row)
+            db.removeWorksheetPath(DATABASE_PATH, row)
+        elif table == 'Record':
+            db.removeRecord(DATABASE_PATH, row)
+
+        self.accept()
+
 
 def exportToCSV():
     """
@@ -452,15 +496,42 @@ def managementGUI():
     window.show()
     app.exec()
 
+def initialize_sockets(LOCAL_IP, SOCKETS):
+    # Initializing UDP sockets
+    SOCKETS['socket_udp'] = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    SOCKETS['socket_udp'].setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    SOCKETS['socket_udp'].bind((LOCAL_IP, SOCKETS['udp']))
+
+    # Initializing TCP sockets
+    SOCKETS['socket_tcp'] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    SOCKETS['socket_tcp'].bind((LOCAL_IP, SOCKETS['tcp']))
+
 if __name__ == '__main__':
+    # Parse the command line arguments
+    argparse.ArgumentParser(description='ELERP Server')
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-d', '--development', action='store_true', help='Run the server in development mode')
+    parser.add_argument('-v', '--version', action='version', version=SERVER_VERSION)
 
-    broadcastListenerThread = createUDPThread(UDP_PORT, udpService, stop)
+    args = parser.parse_args()
+
+    if args.development:
+        logger.info("Running in development mode")
+        logHandler.setLevel(logging.DEBUG)
+        SOCKETS['udp'] = DEVELOPMENT_UDP_PORT
+        SOCKETS['tcp'] = DEVELOPMENT_TCP_PORT
+    else:
+        logger.info("Running in production mode") 
+
+    initialize_sockets(LOCAL_IP, SOCKETS)
+
+    broadcastListenerThread = createUDPThread(SOCKETS['udp'], udpService, stop)
     broadcastListenerThread.start()
-    logger.info(f'UDP boardcast listener started at {LOCAL_IP}:{UDP_PORT}')
+    logger.info(f'UDP boardcast listener started at {LOCAL_IP}:{SOCKETS['udp']}')
 
-    dedicatedListenerThread = createTCPThread(TCP_PORT, tcpService, stop)
+    dedicatedListenerThread = createTCPThread(SOCKETS['tcp'], tcpService, stop)
     dedicatedListenerThread.start()
-    logger.info(f'TCP listener started at {LOCAL_IP}:{TCP_PORT}')
+    logger.info(f'TCP listener started at {LOCAL_IP}:{SOCKETS['tcp']}')
 
     # Load resources
     progRes = json.loads(open(RESOURCES_PATH + 'data.json', 'r',encoding='utf-8').read())
@@ -468,16 +539,16 @@ if __name__ == '__main__':
 
     while not stop.is_set():
         print('\n\nELERP Server management console')
-        print('q --- Quit')
+        print('quit/exit --- Quit')
         print('list --- List all clients')
         print('message --- Show message')
         print('reset --- Reset database')
         print('version --- Show server version')
-        print('database --- Database management tools')
+        print('gui --- Database management tools')
         print('csv --- Export database to csv')
         print('sql --- Run SQL command')
         command = input('Enter command: ')
-        if command == 'q':
+        if command == 'quit' or command == 'exit':
             stop.set()
             print('Stopping server... Please wait')
         elif command == 'list':
@@ -490,13 +561,16 @@ if __name__ == '__main__':
             db.resetRecordsTable(DATABASE_PATH)
         elif command == 'version':
             print(SERVER_VERSION)
-        elif command == 'database':
+        elif command == 'gui':
             print('Working in progress')
             managementGUI()
         elif command == 'csv':
             exportToCSV()
         elif command == 'sql':
-            db.runSQLCommand(DATABASE_PATH, input('Enter SQL command: '))
+            try:
+                db.runSQLCommand(DATABASE_PATH, input('Enter SQL command: '))
+            except Exception as e:
+                print(e)
 
     print('Stopping broadcast listener thread...')
     broadcastListenerThread.join()

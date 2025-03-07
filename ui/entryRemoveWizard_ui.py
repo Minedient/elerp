@@ -18,8 +18,8 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
 from PySide6.QtWidgets import (QAbstractButton, QApplication, QComboBox, QDialog,
     QDialogButtonBox, QFrame, QGridLayout, QGroupBox,
     QHBoxLayout, QHeaderView, QLabel, QPushButton,
-    QSizePolicy, QSpacerItem, QTableWidget, QTableWidgetItem,
-    QVBoxLayout, QWidget)
+    QSizePolicy, QTableWidget, QTableWidgetItem, QVBoxLayout,
+    QWidget)
 
 class Ui_EntryRemoveWizard(object):
     def setupUi(self, EntryRemoveWizard):
@@ -64,6 +64,11 @@ class Ui_EntryRemoveWizard(object):
 
         self.groupBox_2 = QGroupBox(EntryRemoveWizard)
         self.groupBox_2.setObjectName(u"groupBox_2")
+        sizePolicy2 = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
+        sizePolicy2.setHorizontalStretch(0)
+        sizePolicy2.setVerticalStretch(1)
+        sizePolicy2.setHeightForWidth(self.groupBox_2.sizePolicy().hasHeightForWidth())
+        self.groupBox_2.setSizePolicy(sizePolicy2)
         self.gridLayout = QGridLayout(self.groupBox_2)
         self.gridLayout.setObjectName(u"gridLayout")
         self.label_2 = QLabel(self.groupBox_2)
@@ -91,10 +96,6 @@ class Ui_EntryRemoveWizard(object):
 
         self.verticalLayout.addWidget(self.groupBox_2)
 
-        self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
-
-        self.verticalLayout.addItem(self.verticalSpacer)
-
         self.buttonBox = QDialogButtonBox(EntryRemoveWizard)
         self.buttonBox.setObjectName(u"buttonBox")
         self.buttonBox.setOrientation(Qt.Orientation.Horizontal)
@@ -113,7 +114,7 @@ class Ui_EntryRemoveWizard(object):
     def retranslateUi(self, EntryRemoveWizard):
         EntryRemoveWizard.setWindowTitle(QCoreApplication.translate("EntryRemoveWizard", u"Dialog", None))
         self.groupBox.setTitle(QCoreApplication.translate("EntryRemoveWizard", u"Table selector", None))
-        self.label.setText(QCoreApplication.translate("EntryRemoveWizard", u"Please select the table you want to edit from:", None))
+        self.label.setText(QCoreApplication.translate("EntryRemoveWizard", u"Please select the table to remove from:", None))
         self.groupBox_2.setTitle(QCoreApplication.translate("EntryRemoveWizard", u"Table Viewer", None))
         self.label_2.setText(QCoreApplication.translate("EntryRemoveWizard", u"Please select the row you want to remove", None))
         self.removeButton.setText(QCoreApplication.translate("EntryRemoveWizard", u"Remove!", None))

@@ -14,6 +14,7 @@ from src.protocol import STATUS, ExecutorScope, ProtocolHandler, REQUEST, RESPON
 import time
 import configparser
 from src.networking import searchServer, connectToServer
+import argparse
 
 TIER = ['F1','F2','F3','F4','F5','F6','J','S','A']
 
@@ -42,6 +43,8 @@ classes = None
 CLIENT_VERSION = '1.0.5'
 SERVER_UDP_PORT = 19864
 SERVER_TCP_PORT = 19865
+D_SERVER_UDP_PORT = 19866
+D_SERVER_TCP_PORT = 19867
 
 def exceptionHook(exctype, value, traceback):
     logger.error(f'Uncaught exception: {exctype}, {value}, {traceback}')
@@ -521,6 +524,13 @@ class UpdateMessageBox(QMessageBox):
         self.done(QMessageBox.No)
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='ELERP Client')
+    parser.add_argument('-d', '--development', action='store_true', help='Use development server')
+    args = parser.parse_args()
+
+    udpPort = D_SERVER_UDP_PORT if args.development else SERVER_UDP_PORT
+    tcpPort = D_SERVER_TCP_PORT if args.development else SERVER_TCP_PORT
+
     app = QApplication(sys.argv)
 
     # Load configuration, if it is empty, create a new file
@@ -538,7 +548,7 @@ if __name__ == '__main__':
     downloadFolderPath = os.path.dirname(os.path.abspath(__file__)) if config.getint('SETTING', 'Store Location') == 1 else os.path.join(os.path.expanduser('~'), 'Downloads')
 
     # Attempt to find the server and collect necessary information
-    addr = searchServer(SERVER_UDP_PORT, 'elerp_client', logger)
+    addr = searchServer(udpPort, 'elerp_client', logger)
     if not addr[0] and addr[1]:
         QMessageBox.critical(None, 'Error', 'No server found')
         sys.exit(1)
@@ -552,7 +562,7 @@ if __name__ == '__main__':
     box.accepted.connect(box.close)
     box.show()
 
-    conn = connectToServer(addr[0], SERVER_TCP_PORT, logger)
+    conn = connectToServer(addr[0], tcpPort, logger)
     testConnection(conn)    # Test the connection, should return OK
     checkUpdate(conn)       # Check for update
     getGlobalData(conn)     # Get the global data

@@ -470,6 +470,44 @@ def removeRecord(d_path: str, record_id: int) -> None:
     conn.commit()
     conn.close()
 
+def removeWorksheet(d_path: str, sheet_id: int) -> None:
+    """
+    Remove a worksheet from the database by its id
+    This method is not recommanded to use unless it's necessary
+
+    Args:
+        d_path (str): The path to the database
+        sheet_id (int): The id of the worksheet
+    
+    Returns:
+        None
+    """
+    conn = sqlite3.connect(d_path)
+    c = conn.cursor()
+    c.execute("DELETE FROM worksheets WHERE sheet_id=?", (sheet_id,))
+    c.close()
+    conn.commit()
+    conn.close()
+
+def removeWorksheetPath(d_path: str, sheet_id: int) -> None:
+    """
+    Remove a worksheet path from the database by its id
+    This method is not recommanded to use unless it's necessary
+
+    Args:
+        d_path (str): The path to the database
+        sheet_id (int): The id of the worksheet
+    
+    Returns:
+        None
+    """
+    conn = sqlite3.connect(d_path)
+    c = conn.cursor()
+    c.execute("DELETE FROM worksheet_paths WHERE sheet_id=?", (sheet_id,))
+    c.close()
+    conn.commit()
+    conn.close()
+
 def runSQLCommand(d_path: str, command: str) -> None:
     """
     Run a SQL command in the database

@@ -10,3 +10,4 @@
 /ui/__pycache__/*
 ELERP_GUI.spec
 ELERP_SERVER.spec
+runtime.log

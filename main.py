@@ -40,7 +40,7 @@ subjects = None
 forms = None
 classes = None
 
-CLIENT_VERSION = '1.0.5'
+CLIENT_VERSION = '1.0.7'
 SERVER_UDP_PORT = 19864
 SERVER_TCP_PORT = 19865
 D_SERVER_UDP_PORT = 19866

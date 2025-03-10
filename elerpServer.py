@@ -272,7 +272,7 @@ def clientHandler(conn, addr, stop: threading.Event):
             executor.executeHandlers()
 
         except ConnectionResetError:
-            logger.warning(f'Closing connection with {addressbook[ip]}')
+            logger.info(f'Closing connection with {addressbook[ip]}')
             conn.close()
             break
     conn.close()

@@ -4,12 +4,29 @@ from enum import Enum
 from typing import Union
 
 class REQUEST(Enum):
+    """
+    The request type for the elerp network communication.
+    This is used to identify the type of the request to be sent to the server.
+    For simplicity, HTTP-like request types are used.
+
+    GET: The request to get data from the server.
+    POST: The request to post data to the server.
+    PUT: The request to update data on the server.
+    DELETE: The request to delete data from the server.
+    """
     GET = 'get'
     POST = 'post'
     PUT = 'put'
     DELETE = 'delete'
 
 class RESPONSE(Enum):
+    """
+    The response type for the elerp network communication.
+    For simplicity, HTTP-like response types are used.
+
+    OK: The response to indicate that the request is successful.
+    ERROR: The response to indicate that the request is failed.
+    """
     OK = 'ok'
     ERROR = 'error'
 
@@ -21,7 +38,21 @@ class STATUS(Enum):
     UPLOAD_FAILED = 'upload_failed'
 
 class ProtocolEncoder(json.JSONEncoder):
+    """
+    The JSON encoder for the elerp network communication.
+    It encodes the custom objects to JSON format.
+    """
     def default(self, obj):
+        """
+        Encode the custom objects to JSON format.
+        
+        Args:
+            obj: The object to encode.
+            
+        Returns:
+            dict: The encoded object.
+                
+        """
         if isinstance(obj, REQUEST):
             return {'__REQUEST__': obj.value}
         elif isinstance(obj, RESPONSE):
@@ -49,6 +80,15 @@ class ProtocolData():
     """
     The data structure for the elerp network communication.
     It wraps the dictionary data structure and provides methods to access the data easily.
+
+    The data structure is as follows:
+    {
+        'type': REQUEST or RESPONSE,
+        'command': str,
+        'message': dict
+    }
+    with optional 'attributes' key to store the attributes of the message, which is useful in some situations.
+
     """
     def __init__(self):
         self.data = {'type': None, 'command': None, 'message': {}}
@@ -107,6 +147,7 @@ class ProtocolData():
 
         Returns:
             Any: The value of the attribute.
+
         """
         return self.data['message'][key]
 
@@ -144,6 +185,29 @@ class ProtocolData():
         Reset the data.
         """
         self.data = {'type': None, 'command': None, 'message': {}}
+
+    def setAttributeStrings(self, strings: list[str]):
+        """
+        Set the attribute strings of the message.
+        This is used so the receiver of the message can easily parse the message, and extract the attributes in the message.
+        Very useful if the message is a dictionary and the keys are not fixed.
+
+        Args:
+            strings (list[str]): The list of attribute strings.
+        
+        Returns:
+            None
+        """
+        self.data['attributes'] = strings
+
+    def getAttributeStrings(self):
+        """
+        Get the attribute strings of the message.
+
+        Returns:
+            list[str]: The list of attribute strings.
+        """
+        return self.data['attributes']
 
 
 class ProtocolHandler():

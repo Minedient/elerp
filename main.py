@@ -40,7 +40,7 @@ subjects = None
 forms = None
 classes = None
 
-CLIENT_VERSION = '1.0.7'
+CLIENT_VERSION = '2.0.0'
 SERVER_UDP_PORT = 19864
 SERVER_TCP_PORT = 19865
 D_SERVER_UDP_PORT = 19866
@@ -117,7 +117,7 @@ def versionCompare(client: str, server: str) -> int:
             return 0
     return 0
 
-def checkUpdate(conn):
+def checkUpdate(conn) -> bool:
     """
     Compare the client version with the server version.
     If the server version is newer, return True, otherwise False.
@@ -130,10 +130,13 @@ def checkUpdate(conn):
     result = versionCompare(CLIENT_VERSION, respond)
     if result == 1:
         QMessageBox.information(None, 'Update', 'A new update is available, please update the program to the latest version.')
+        return True
     elif result == 2:
         QMessageBox.critical(None, 'Error', 'The server version is not compatible with the client version, please update the program to the latest version.')
+        return False
     else:
         logger.info('Client version is up to date')
+        return True
 
 
 def getGlobalData(conn):
@@ -381,6 +384,14 @@ class RegisterWizard(QDialog):
             QMessageBox.critical(None, 'Error', 'Please select a worksheet')
             return
         
+        if self.ui.sectionCombox.currentIndex() == 0:
+            QMessageBox.critical(None, 'Error', 'Please select a valid class section')
+            return
+        
+        if self.ui.subTeacherEdit.text() == '':
+            QMessageBox.critical(None, 'Error', 'Please enter the name of the teacher that will be substituted')
+            return
+        
         # Save the teacher name to the configuration file
         config.set('SETTING', 'Teacher Name', self.ui.nameEdit.text())
         with open('config.ini', 'w') as configfile:
@@ -391,6 +402,8 @@ class RegisterWizard(QDialog):
             .addAttribute('class', self.ui.comboBox.currentText()) \
             .addAttribute('teacher', self.ui.nameEdit.text()) \
             .addAttribute('worksheet', self.ui.worksheetEdit.text()) \
+            .addAttribute('subTeacher', self.ui.subTeacherEdit.text()) \
+            .addAttribute('section', self.ui.sectionCombox.currentIndex()) \
             .serializeMessage()
         try:
             response = sendRequest(conn, request)  # This should return OK
@@ -564,7 +577,8 @@ if __name__ == '__main__':
 
     conn = connectToServer(addr[0], tcpPort, logger)
     testConnection(conn)    # Test the connection, should return OK
-    checkUpdate(conn)       # Check for update
+    if not checkUpdate(conn):       # Check for update
+        sys.exit(1)     # Exit the program if the server version is not compatible
     getGlobalData(conn)     # Get the global data
 
     window = MainWindow()

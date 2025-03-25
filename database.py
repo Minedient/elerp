@@ -39,6 +39,9 @@ def createDatabase(d_path: str) -> None:
 
     This is used to initialize the database when the application is first run
 
+    @since 1.0.0
+    @updated 1.1.0
+
     Args:
         d_path (str): The path to the database
     
@@ -53,6 +56,30 @@ def createDatabase(d_path: str) -> None:
                  (record_id INTEGER PRIMARY KEY, sheet_id INTEGER, use_date TEXT, class TEXT, teacher TEXT)''')
     c.execute('''CREATE TABLE worksheet_paths 
                  (path_id INTEGER PRIMARY KEY, sheet_id INTEGER, file_path TEXT, FOREIGN KEY (sheet_id) REFERENCES worksheets(sheet_id))''')
+    c.execute('''CREATE TABLE class_records
+                 (class_record_id INTEGER PRIMARY KEY, record_id INTEGER, section INTEGER, substituted_teacher TEXT, FOREIGN KEY (record_id) REFERENCES records(record_id))''')
+    c.close()
+    conn.commit()
+    conn.close()
+
+def createClassRecordTable(d_path: str) -> None:
+    """
+    Create a new table called class_records in the database
+    
+    The table store data about the substituted class itself, including which teacher is substituting and the section
+
+    Used to upgrade from version 1.0.7 to 1.1.0
+
+    Args:
+        d_path (str): The path to the database
+    
+    Returns:
+        None
+    """
+    conn = sqlite3.connect(d_path)
+    c = conn.cursor()
+    c.execute('''CREATE TABLE class_records
+                 (class_record_id INTEGER PRIMARY KEY, record_id INTEGER, section INTEGER, substituted_teacher TEXT, FOREIGN KEY (record_id) REFERENCES records(record_id))''')
     c.close()
     conn.commit()
     conn.close()
@@ -115,6 +142,23 @@ def getWorksheetId(d_path: str, name: str) -> int:
     sheet_id = c.fetchone()
     conn.close()
     return sheet_id[0]
+
+def getLatestRecordId(d_path: str) -> int:
+    """
+    Get the id of the latest record in the database
+    
+    Args:
+        d_path (str): The path to the database
+    
+    Returns:
+        int: The id of the latest record
+    """
+    conn = sqlite3.connect(d_path)
+    c = conn.cursor()
+    c.execute("SELECT record_id FROM records ORDER BY record_id DESC LIMIT 1")
+    record_id = c.fetchone()
+    conn.close()
+    return record_id[0]
 
 def alterWorksheetDateById(d_path: str, sheet_id: int, upload_date: str) -> None:
     """
@@ -237,6 +281,26 @@ def registerWorksheetUse(d_path: str, sheet_id: int, class_name: str, teacher: s
     conn.commit()
     conn.close()
 
+def registerClassRecord(d_path: str, record_id: int, section: int, substituted_teacher: str) -> None:
+    """
+    Register a class record in the database
+    
+    Args:
+        d_path (str): The path to the database
+        record_id (int): The id of the record
+        section (int): The section of the class
+        substituted_teacher (str): The teacher that is substituting
+    
+    Returns:
+        None
+    """
+    conn = sqlite3.connect(d_path)
+    c = conn.cursor()
+    c.execute("INSERT INTO class_records (record_id, section, substituted_teacher) VALUES (?, ?, ?)", (record_id, section, substituted_teacher))
+    c.close()
+    conn.commit()
+    conn.close()
+
 def getWorksheetPath(d_path: str, sheet_id: int) -> str:
     """
     Get the path of a worksheet by its id
@@ -342,6 +406,23 @@ def getRecords(d_path: str) -> list:
     conn.close()
     return records
 
+def getClassRecords(d_path: str) -> list:
+    """
+    Get all class records from the database
+
+    Args:
+        d_path (str): The path to the database
+
+    Returns:
+        list: A list with all class records
+    """
+    conn = sqlite3.connect(d_path)
+    c = conn.cursor()
+    c.execute("SELECT * FROM class_records")
+    class_records = c.fetchall()
+    conn.close()
+    return class_records
+
 def getRecordsByClass(d_path: str, class_name: str) -> list:
     """
     Get all records registered with a specific class
@@ -394,6 +475,25 @@ def getWorksheetPaths(d_path: str) -> list:
     worksheet_paths = c.fetchall()
     conn.close()
     return worksheet_paths
+
+def getUsageDetails(d_path: str) -> list:
+    """
+    Get the details of each usage.
+    Including the worksheet name, class, teacher name, use date, section and substituted teacher
+    If the correponsding record doesn't have a class record, the section and substituted teacher will be ignored as we can't create imaginary data
+
+    Args:
+        d_path (str): The path to the database
+
+    Returns:
+        list: A list with all usage details
+    """
+    conn = sqlite3.connect(d_path)
+    c = conn.cursor()
+    c.execute("SELECT r.record_id, r.class, r.teacher, w.name, r.use_date, cr.section, cr.substituted_teacher FROM records r LEFT JOIN class_records cr ON r.record_id = cr.record_id INNER JOIN worksheets w ON r.sheet_id = w.sheet_id")
+    usage_details = c.fetchall()
+    conn.close()
+    return usage_details
 
 def updateWorksheet(d_path: str, column: str, value: str, condition: str) -> None:
     """

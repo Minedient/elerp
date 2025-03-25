@@ -21,20 +21,23 @@
        <string>Action</string>
       </property>
       <layout class="QGridLayout" name="gridLayout">
-       <item row="2" column="1">
-        <widget class="QRadioButton" name="editTrigger">
+       <item row="0" column="4">
+        <widget class="QLabel" name="label_3">
          <property name="text">
-          <string>Enabled</string>
+          <string>Refresh Tables</string>
          </property>
-         <property name="checked">
-          <bool>true</bool>
+         <property name="buddy">
+          <cstring>refreshButton</cstring>
          </property>
         </widget>
        </item>
-       <item row="0" column="5">
-        <widget class="QPushButton" name="refreshButton">
+       <item row="0" column="0">
+        <widget class="QLabel" name="label">
          <property name="text">
-          <string>Click</string>
+          <string>Save Database</string>
+         </property>
+         <property name="buddy">
+          <cstring>saveButton</cstring>
          </property>
         </widget>
        </item>
@@ -42,6 +45,13 @@
         <widget class="QLabel" name="label_4">
          <property name="text">
           <string>Remove Entry</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QPushButton" name="saveButton">
+         <property name="text">
+          <string>Click</string>
          </property>
         </widget>
        </item>
@@ -70,40 +80,6 @@
          </property>
         </widget>
        </item>
-       <item row="0" column="4">
-        <widget class="QLabel" name="label_3">
-         <property name="text">
-          <string>Refresh Tables</string>
-         </property>
-         <property name="buddy">
-          <cstring>refreshButton</cstring>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="5">
-        <widget class="QPushButton" name="removeEntryButton">
-         <property name="text">
-          <string>Click</string>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="1">
-        <widget class="QPushButton" name="saveButton">
-         <property name="text">
-          <string>Click</string>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="0">
-        <widget class="QLabel" name="label">
-         <property name="text">
-          <string>Save Database</string>
-         </property>
-         <property name="buddy">
-          <cstring>saveButton</cstring>
-         </property>
-        </widget>
-       </item>
        <item row="2" column="0">
         <widget class="QLabel" name="label_2">
          <property name="text">
@@ -114,7 +90,38 @@
          </property>
         </widget>
        </item>
-       <item row="2" column="6">
+       <item row="0" column="5">
+        <widget class="QPushButton" name="refreshButton">
+         <property name="text">
+          <string>Click</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1">
+        <widget class="QRadioButton" name="editTrigger">
+         <property name="text">
+          <string>Enabled</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="6">
+        <widget class="QLabel" name="label_5">
+         <property name="text">
+          <string>Master Data</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="5">
+        <widget class="QPushButton" name="removeEntryButton">
+         <property name="text">
+          <string>Click</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="8">
         <spacer name="horizontalSpacer">
          <property name="orientation">
           <enum>Qt::Orientation::Horizontal</enum>
@@ -126,6 +133,16 @@
           </size>
          </property>
         </spacer>
+       </item>
+       <item row="0" column="7">
+        <widget class="QPushButton" name="masterDataButton">
+         <property name="toolTip">
+          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Generate master usage data from database and save it in the folder&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         </property>
+         <property name="text">
+          <string>Click</string>
+         </property>
+        </widget>
        </item>
       </layout>
      </widget>
@@ -139,6 +156,9 @@
     </item>
     <item>
      <widget class="QTabWidget" name="databaseTabWidget">
+      <property name="tabShape">
+       <enum>QTabWidget::TabShape::Rounded</enum>
+      </property>
       <property name="currentIndex">
        <number>0</number>
       </property>
@@ -199,6 +219,16 @@
            <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
           </property>
          </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="classRecordWidget">
+       <attribute name="title">
+        <string>ClassRecord</string>
+       </attribute>
+       <layout class="QHBoxLayout" name="horizontalLayout_4">
+        <item>
+         <widget class="QTableWidget" name="classRecordTable"/>
         </item>
        </layout>
       </widget>

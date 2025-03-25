@@ -27,7 +27,7 @@ DEVELOPMENT_UDP_PORT = 19866
 DEVELOPMENT_TCP_PORT = 19867
 SOCKETS = {'udp': PRODUCTION_UDP_PORT, 'tcp': PRODUCTION_TCP_PORT, 'socket_udp': None, 'socket_tcp': None}
 
-SERVER_VERSION = '1.0.7'
+SERVER_VERSION = '2.0.0'
 
 # Resources Path
 RESOURCES_PATH = 'res/'
@@ -218,6 +218,24 @@ def postUploadWorksheet(message, conn, ip):
     database_metadata['count'] = db.getWorksheetsCount(DATABASE_PATH)
 
 def postRegisterUsage(message, conn, ip):
+    """
+    Handle the register usage request from the client.
+    Worksheet and class record will be registered in the database seperately as the old version did not track the class record.
+    And logically, worksheet and class record should be seperated anyway.
+    
+    Args:
+        message (dict): The message containing the following
+            - worksheet (str): The name of the worksheet.
+            - class (str): The class identifier.
+            - teacher (str): The teacher identifier.
+            - section (str): The section identifier.
+            - subTeacher (str): The sub teacher identifier.
+        conn (socket): The connection object.
+        ip (str): The ip address of the client.
+        
+    Returns:
+        None
+    """
     logger.info(f'Register usage request received from {addressbook[ip]}')
     w_id = db.getWorksheetId(DATABASE_PATH, message['worksheet'])
     path = db.getWorksheetPath(DATABASE_PATH, w_id)
@@ -227,7 +245,9 @@ def postRegisterUsage(message, conn, ip):
     reply = handler.prepMessage(RESPONSE.OK, mainMessage=fileData).serializeMessage()
     sendMessage(conn, reply.encode())
     logger.info(f'Sending worksheet to {addressbook[ip]}')
-    db.registerWorksheetUse(DATABASE_PATH, w_id, message['class'], message['teacher'])
+    db.registerWorksheetUse(DATABASE_PATH, w_id, message['class'], message['teacher'])  # Register the worksheet is used on class X by teacher Y
+    r_id = db.getLatestRecordId(DATABASE_PATH)
+    db.registerClassRecord(DATABASE_PATH, r_id, message['section'], message['subTeacher'])  # Register the class record
 
 def getTotalWorksheets(_, conn, ip):
     logger.info(f'Total worksheets request received from {addressbook[ip]}')
@@ -305,6 +325,7 @@ class ManagementUI(QMainWindow):
         setupTable(self.ui.worksheetTable, ['ID', 'Name', 'Description', 'Upload Date', 'Last Update Date', 'Subject', 'Form'])
         setupTable(self.ui.recordTable, ['ID', 'WorksheetID', 'Use Date', 'Class', 'Teacher'])
         setupTable(self.ui.pathTable, ['ID', 'WorksheetID', 'File Path'])
+        setupTable(self.ui.classRecordTable, ['ID', 'RecordID', 'Section', 'Substituted Teacher'])
             
         self.refreshTables()
 
@@ -314,6 +335,7 @@ class ManagementUI(QMainWindow):
         self.ui.editTrigger.toggled.connect(self.setTableEditModes)
         self.ui.refreshButton.clicked.connect(self.refreshTables)
         self.ui.saveButton.clicked.connect(self.saveChanges)
+        self.ui.masterDataButton.clicked.connect(self.saveMasterData)
 
         # Pass the tab names to the remove entry wizard
         self.ui.removeEntryButton.clicked.connect(lambda: self.runRemoveEntryWizard(['Worksheet', 'Record']))
@@ -378,6 +400,7 @@ class ManagementUI(QMainWindow):
         self.allWorksheets = db.getWorksheets(DATABASE_PATH)
         self.allWorksheetPaths = db.getWorksheetPaths(DATABASE_PATH)
         self.allRecords = db.getRecords(DATABASE_PATH)
+        self.allClassRecords = db.getClassRecords(DATABASE_PATH)
 
         def populateTable(table: QTableWidget, data, non_editable_columns: list):
             table.setRowCount(len(data))
@@ -391,9 +414,23 @@ class ManagementUI(QMainWindow):
         populateTable(self.ui.worksheetTable, self.allWorksheets, [0, 1, 3, 4])
         populateTable(self.ui.recordTable, self.allRecords, [0, 1, 2, 3, 4])
         populateTable(self.ui.pathTable, self.allWorksheetPaths, [0, 1, 2])
+        populateTable(self.ui.classRecordTable, self.allClassRecords, [0, 1, 2, 3])
 
         self.editHistories.clear()  # Clear the edit histories, as the tables are refreshed
         self.setTempMessage('Tables refreshed')
+
+    def saveMasterData(self):
+        """
+        Save the master data to the resources file.
+        """
+        logger.info('Saving master data')
+        data = db.getUsageDetails(DATABASE_PATH)
+        currentTime = datetime.now().strftime('%Y-%m-%d %H-%M-%S')
+        with open(f'{currentTime}_masterData.csv', 'w', encoding='utf-8') as file:
+            file.write('Record ID, Class, Teacher, Worksheet, Use Date, Section, Substituted Teacher\n')
+            for record in data:
+                file.write(','.join(map(str, record)) + '\n')
+        self.setTempMessage('Master data saved')
 
 
 class EntryRemoveWizard(QDialog):

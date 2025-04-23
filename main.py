@@ -1,22 +1,24 @@
-import base64
+### Core Libraries ###
 from datetime import datetime
+import os, sys, time, base64
+import configparser
+import argparse
+
+### Logging Libraries ###
+import logging, colorlog
+
+### UI Libraries ###
 import ui.mainUI_ui as mainUI
+from ui.uploadWizard_ui import Ui_Dialog as UploadWizardDialog
+from ui.registerWizard_ui import Ui_Dialog as RegisterWizardDialog
 from PySide6.QtWidgets import QMainWindow, QApplication, QMessageBox, QDialog, QFileDialog, QListWidget, QListWidgetItem, QTableWidgetItem, QDialogButtonBox, QButtonGroup
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QDragEnterEvent, QDropEvent, QIcon
-import os
-import sys
-import logging, colorlog
-from ui.uploadWizard_ui import Ui_Dialog as UploadWizardDialog
-from ui.registerWizard_ui import Ui_Dialog as RegisterWizardDialog
+
+### Helper Functions ###
 from src.helper import recvMessage, sendMessage
 from src.protocol import STATUS, ExecutorScope, ProtocolHandler, REQUEST, RESPONSE
-import time
-import configparser
 from src.networking import searchServer, connectToServer
-import argparse
-
-TIER = ['F1','F2','F3','F4','F5','F6','J','S','A']
 
 # Setup the logger
 logger = logging.getLogger(__name__)
@@ -40,6 +42,7 @@ subjects = None
 forms = None
 classes = None
 
+TIER = ['F1','F2','F3','F4','F5','F6','J','S','A']
 CLIENT_VERSION = '2.0.0'
 SERVER_UDP_PORT = 19864
 SERVER_TCP_PORT = 19865
@@ -57,7 +60,7 @@ def exceptionHook(exctype, value, traceback):
 # Hook for excpetion
 sys.excepthook = exceptionHook
 
-def sendRequest(conn, request, scope=ExecutorScope.MESSAGE):
+def sendRequest(conn, request:str, scope: ExecutorScope=ExecutorScope.MESSAGE):
     """
     Send a request to the server and wait for replies.
 
@@ -69,17 +72,13 @@ def sendRequest(conn, request, scope=ExecutorScope.MESSAGE):
         ProtocolData: The response message.
     """
     sendMessage(conn, request.encode())
-    obj = handler.deserializeMessageAsProtocolData(recvMessage(conn).decode())
-    if scope == ExecutorScope.MESSAGE:
-        return obj.getMessage()
-    elif scope == ExecutorScope.RESPONSE:
-        return obj.getType()
-    elif scope == ExecutorScope.COMMAND:
-        return obj.getCommand()
-    elif scope == ExecutorScope.WHOLE:
-        return obj
-    else:
-        raise ValueError(f'Invalid scope: {scope}')
+    response = handler.deserializeMessageAsProtocolData(recvMessage(conn).decode())
+    return {
+        ExecutorScope.MESSAGE: response.getMessage(),
+        ExecutorScope.RESPONSE: response.getType(),
+        ExecutorScope.COMMAND: response.getCommand(),
+        ExecutorScope.WHOLE: response
+    }.get(scope, lambda: ValueError(f'Invalid scope: {scope}'))
 
 def testConnection(conn):
     """
@@ -191,6 +190,9 @@ class ProgramLogHandler(logging.Handler):
         self.browser.append(msg)
 
 class UploadWizard(QDialog):
+    """
+    A simple dialog that allows the user to upload files to the server.
+    """
     def __init__(self):
         super(UploadWizard, self).__init__()
         self.ui = UploadWizardDialog()
@@ -300,6 +302,13 @@ class UploadWizard(QDialog):
         logger.info('File list cleared')
 
 class RegisterWizard(QDialog):
+    """
+    A dialog that allows the user to register the usage of the worksheet.
+    The user will need to enter their name, the class they are substituting,
+    the name of the teacher that was substituted, the worksheet they are using, and the section of the class.
+
+    The worksheet will be saved to the download folder or the program's folder depending on the user's choice.
+    """
     def __init__(self):
         super(RegisterWizard, self).__init__()
         self.ui = RegisterWizardDialog()
@@ -377,20 +386,17 @@ class RegisterWizard(QDialog):
 
     def accept(self):
         # Check if the user has enter the name
-        if self.ui.nameEdit.text() == '':
-            QMessageBox.critical(None, 'Error', 'Please enter your name')
-            return
-        if self.ui.worksheetEdit.text() == '':
-            QMessageBox.critical(None, 'Error', 'Please select a worksheet')
-            return
-        
-        if self.ui.sectionCombox.currentIndex() == 0:
-            QMessageBox.critical(None, 'Error', 'Please select a valid class section')
-            return
-        
-        if self.ui.subTeacherEdit.text() == '':
-            QMessageBox.critical(None, 'Error', 'Please enter the name of the teacher that will be substituted')
-            return
+        fields = {
+            'Name': self.ui.nameEdit.text(),
+            'Worksheet': self.ui.worksheetEdit.text(),
+            'Class section': self.ui.sectionCombox.currentIndex(),
+            'Substitute teacher': self.ui.subTeacherEdit.text()
+        }
+
+        for field, value in fields.items():
+            if not value or (field == 'Class section' and value == 0):
+                QMessageBox.critical(None, 'Error', f'Please enter/select a valid {field}')
+                return
         
         # Save the teacher name to the configuration file
         config.set('SETTING', 'Teacher Name', self.ui.nameEdit.text())

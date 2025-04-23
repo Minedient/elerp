@@ -246,8 +246,13 @@ def postRegisterUsage(message, conn, ip):
     sendMessage(conn, reply.encode())
     logger.info(f'Sending worksheet to {addressbook[ip]}')
     db.registerWorksheetUse(DATABASE_PATH, w_id, message['class'], message['teacher'])  # Register the worksheet is used on class X by teacher Y
-    r_id = db.getLatestRecordId(DATABASE_PATH)
-    db.registerClassRecord(DATABASE_PATH, r_id, message['section'], message['subTeacher'])  # Register the class record
+    
+    # In order to deal with possible old client that does not provide class information, a try catch is used here.
+    try:
+        r_id = db.getLatestRecordId(DATABASE_PATH)
+        db.registerClassRecord(DATABASE_PATH, r_id, message['section'], message['subTeacher'])  # Register the class record
+    except KeyError as ke:
+        logger.warning(f'Class record not provided: {ke}, client info: {addressbook[ip]}, time {datetime.now()}')
 
 def getTotalWorksheets(_, conn, ip):
     logger.info(f'Total worksheets request received from {addressbook[ip]}')
